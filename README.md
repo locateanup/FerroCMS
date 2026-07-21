@@ -25,9 +25,8 @@ model — but **decoupled**, **edge-native**, and **type-safe** from the schema 
 front-end. It's a developer-first alternative to WordPress, and a more complete alternative to
 git-based tools like Keystatic, without the operational weight of a self-hosted Strapi/Directus.
 
-> **Status:** 🚧 Early development. Phase 1 (MVP core) + SEO are implemented and tested; the rest of
-> the roadmap is in progress. Not yet production-ready — see the [Roadmap](#roadmap). Stars and
-> contributions are very welcome. ⭐
+> **Status:** 🚧 Early development. The core is implemented and tested (see [Features](#features)),
+> but it's not yet production-ready. Stars and contributions are very welcome. ⭐
 
 ## Table of contents
 
@@ -39,7 +38,6 @@ git-based tools like Keystatic, without the operational weight of a self-hosted 
 - [Deployment](#deployment)
 - [SEO](#seo)
 - [Consuming content in your site](#consuming-content-in-your-site)
-- [Roadmap](#roadmap)
 - [FAQ](#faq)
 - [Contributing](#contributing)
 - [License](#license)
@@ -62,7 +60,7 @@ git-based tools like Keystatic, without the operational weight of a self-hosted 
 
 ## Features
 
-Legend: ✅ implemented · 🚧 on the roadmap
+Legend: ✅ implemented · 🚧 planned
 
 ### Content
 
@@ -231,18 +229,12 @@ const meta = buildMeta(post, { siteUrl: 'https://mysite.com', urlPattern: '/blog
 const tags = metaTags(meta); // -> [{ tag: 'title', text }, { tag: 'meta', attrs }, ...]
 ```
 
-## Roadmap
-
-- **Phase 1 — MVP core** ✅ content types, fields, RBAC, media library, draft/publish, auto REST API
-- **Phase 2 — Production-real** 🚧 block editor, relations, taxonomies, revisions UI, **SEO** ✅, i18n, SDK ✅, webhooks
-- **Phase 3 — Extensibility** 🚧 plugin/hook system, GraphQL, SSO, search, backups
-- **Phase 4 — Ecosystem** 🚧 page builder, real-time collab, comments, forms, e-commerce, AI, integrations, marketplace
-
 ## FAQ
 
 **Is FerroCMS production-ready?**
-Not yet. Phase 1 + SEO are implemented and tested, but the project is in early development. Try it,
-star it, and follow along — feedback shapes the roadmap.
+Not yet. The core (content types, RBAC, media, SEO, revisions, webhooks) is implemented and tested,
+but the project is in early development. Try it, star it, and open issues — feedback shapes what comes
+next.
 
 **Do I have to use Cloudflare?**
 No. FerroCMS is Cloudflare-first but **runs anywhere**. It ships two runtimes from the same codebase:
@@ -261,8 +253,7 @@ Anything that can call an HTTP API — Next.js, Vue/Nuxt, Astro, SvelteKit, Remi
 ## Contributing
 
 Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md). Please also read our
-[Code of Conduct](./CODE_OF_CONDUCT.md) and [security policy](./SECURITY.md). Good first issues and a
-detailed roadmap are on the way.
+[Code of Conduct](./CODE_OF_CONDUCT.md) and [security policy](./SECURITY.md).
 
 ## License
 
