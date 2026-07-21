@@ -7,6 +7,7 @@ import { authenticated } from '@ferrocms/core';
 import { authRouter } from './routes/auth.js';
 import { entriesRouter } from './routes/entries.js';
 import { mediaRouter } from './routes/media.js';
+import { robotsHandler, sitemapHandler } from './routes/seo.js';
 import { collections } from './config/collections.js';
 
 const app = new Hono<AppBindings>();
@@ -29,6 +30,10 @@ app.onError((err, c) => toErrorResponse(c, err));
 
 // Health check — no DB required.
 app.get('/health', (c) => c.json({ status: 'ok', service: 'ferrocms-api' }));
+
+// SEO endpoints (create their own db client; no auth required — public).
+app.get('/sitemap.xml', sitemapHandler);
+app.get('/robots.txt', robotsHandler);
 
 // Everything under /api gets a request-scoped db + resolved user.
 app.use('/api/*', contextMiddleware);

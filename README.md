@@ -61,6 +61,33 @@ Then open the admin at `http://localhost:5173`.
 
 See the full plan and feature catalog in [`docs/`](./docs) (coming soon).
 
+## SEO
+
+Enable SEO on any collection and FerroCMS injects meta fields (meta title, meta description,
+social image, canonical URL, noindex) and includes published entries in the sitemap:
+
+```ts
+defineCollection({
+  slug: 'posts',
+  seo: { urlPattern: '/blog/:slug' }, // or `seo: true` for the default `/:slug`
+  fields: [/* ... */],
+});
+```
+
+- `GET /sitemap.xml` — generated from published, non-`noindex` entries of SEO-enabled collections,
+  using `SITE_URL` + each collection's `urlPattern`.
+- `GET /robots.txt` — allows crawling and points at the sitemap.
+
+On the front-end, turn an entry into meta tags with the SDK:
+
+```ts
+import { buildMeta, metaTags } from '@ferrocms/sdk';
+
+const post = await client.findBySlug('posts', slug);
+const meta = buildMeta(post, { siteUrl: 'https://mysite.com', urlPattern: '/blog/:slug' });
+const tags = metaTags(meta); // -> [{ tag: 'title', text }, { tag: 'meta', attrs }, ...]
+```
+
 ## Contributing
 
 Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md). Please also read our

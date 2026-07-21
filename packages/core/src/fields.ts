@@ -28,6 +28,8 @@ export interface FieldAdminOptions {
   width?: 'full' | 'half';
   /** Help text rendered under the control. */
   help?: string;
+  /** Group label — fields sharing a group render together in the form. */
+  group?: string;
 }
 
 interface BaseField {

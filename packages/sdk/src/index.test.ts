@@ -10,16 +10,14 @@ function jsonResponse(body: unknown, status = 200): Response {
 
 describe('createClient', () => {
   it('lists entries and sends the API key', async () => {
-    const fetchMock = vi
-      .fn()
-      .mockResolvedValue(
-        jsonResponse({
-          items: [{ id: '1', data: { title: 'Hi' } }],
-          total: 1,
-          limit: 20,
-          offset: 0,
-        }),
-      );
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        items: [{ id: '1', data: { title: 'Hi' } }],
+        total: 1,
+        limit: 20,
+        offset: 0,
+      }),
+    );
     const client = createClient({ url: 'https://cms.test/', apiKey: 'secret', fetch: fetchMock });
 
     const result = await client.find('posts', { limit: 20 });

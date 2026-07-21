@@ -33,7 +33,13 @@ export interface Field {
   options?: SelectOption[];
   many?: boolean;
   from?: string;
-  admin?: { placeholder?: string; hidden?: boolean; width?: 'full' | 'half'; help?: string };
+  admin?: {
+    placeholder?: string;
+    hidden?: boolean;
+    width?: 'full' | 'half';
+    help?: string;
+    group?: string;
+  };
 }
 
 export interface CollectionSchema {

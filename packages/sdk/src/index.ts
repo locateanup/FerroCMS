@@ -69,6 +69,8 @@ export interface FerroCmsClient {
   mediaUrl(key: string): string;
 }
 
+export * from './seo.js';
+
 export function createClient(options: ClientOptions): FerroCmsClient {
   const base = options.url.replace(/\/+$/, '');
   const fetchImpl = options.fetch ?? globalThis.fetch;

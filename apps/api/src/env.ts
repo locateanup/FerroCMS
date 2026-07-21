@@ -11,6 +11,8 @@ export interface Env {
   ADMIN_ORIGIN: string;
   /** Comma-separated list of additional allowed origins. */
   CORS_ORIGINS?: string;
+  /** Public base URL of the front-end site, used for sitemap + canonical URLs. */
+  SITE_URL?: string;
   /** R2 bucket for the media library. */
   MEDIA: R2Bucket;
   /** KV namespace for sessions and cache. */

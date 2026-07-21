@@ -10,6 +10,7 @@ import { atLeast, buildRegistry, defineCollection, type ResolvedCollection } fro
 
 export const posts = defineCollection({
   slug: 'posts',
+  seo: { urlPattern: '/blog/:slug' },
   admin: { icon: 'article', useAsTitle: 'title', defaultColumns: ['title', 'status'] },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 200 },
@@ -31,6 +32,7 @@ export const posts = defineCollection({
 
 export const pages = defineCollection({
   slug: 'pages',
+  seo: { urlPattern: '/:slug' },
   admin: { icon: 'file', useAsTitle: 'title' },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 200 },

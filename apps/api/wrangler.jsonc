@@ -26,7 +26,8 @@
   ],
   "vars": {
     "ADMIN_ORIGIN": "http://localhost:5173",
-    "CORS_ORIGINS": "http://localhost:5173,http://localhost:3000"
+    "CORS_ORIGINS": "http://localhost:5173,http://localhost:3000",
+    "SITE_URL": "http://localhost:3000"
   }
   // Secrets (DATABASE_URL, AUTH_SECRET) are provided via `.dev.vars` locally
   // and `wrangler secret put` in production — never commit them here.

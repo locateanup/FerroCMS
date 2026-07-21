@@ -5,6 +5,7 @@
 import { humanize, type Field } from './fields.js';
 import type { CollectionAccess } from './access.js';
 import type { CollectionHooks } from './hooks.js';
+import { seoFields } from './seo.js';
 
 export const ENTRY_STATUSES = ['draft', 'published', 'scheduled', 'archived'] as const;
 export type EntryStatus = (typeof ENTRY_STATUSES)[number];
@@ -20,6 +21,9 @@ export interface CollectionAdminOptions {
   icon?: string;
 }
 
+/** SEO options for a collection. `true` uses defaults. */
+export type CollectionSeo = boolean | { urlPattern?: string };
+
 export interface CollectionConfig {
   /** URL + table key, e.g. 'posts'. Lowercase, kebab/snake, unique. */
   slug: string;
@@ -29,6 +33,12 @@ export interface CollectionConfig {
   timestamps?: boolean;
   /** Enable draft/published workflow. Default true. */
   drafts?: boolean;
+  /**
+   * Enable SEO: injects meta fields and includes published entries in the
+   * sitemap. Pass `{ urlPattern }` to control how sitemap/canonical URLs are
+   * built (default `/:slug`; supports `:collection` and `:slug` tokens).
+   */
+  seo?: CollectionSeo;
   access?: CollectionAccess;
   hooks?: CollectionHooks;
   admin?: CollectionAdminOptions;
@@ -40,6 +50,7 @@ export interface ResolvedCollection extends CollectionConfig {
   drafts: boolean;
   labels: { singular: string; plural: string };
   admin: CollectionAdminOptions & { useAsTitle: string };
+  seoConfig: { enabled: boolean; urlPattern: string };
 }
 
 const SLUG_RE = /^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$/;
@@ -62,8 +73,16 @@ export function defineCollection(config: CollectionConfig): ResolvedCollection {
     throw new Error(`Collection "${config.slug}" must declare at least one field.`);
   }
 
+  // Resolve SEO and inject its fields (skipping any the user already declared).
+  const seoEnabled = config.seo === true || (typeof config.seo === 'object' && config.seo !== null);
+  const urlPattern = (typeof config.seo === 'object' && config.seo?.urlPattern) || '/:slug';
+  const declaredNames = new Set(config.fields.map((f) => f.name));
+  const fields: Field[] = seoEnabled
+    ? [...config.fields, ...seoFields.filter((f) => !declaredNames.has(f.name))]
+    : config.fields;
+
   const seen = new Set<string>();
-  for (const field of config.fields) {
+  for (const field of fields) {
     if (!field.name) {
       throw new Error(`Collection "${config.slug}" has a field with no name.`);
     }
@@ -97,10 +116,12 @@ export function defineCollection(config: CollectionConfig): ResolvedCollection {
 
   return {
     ...config,
+    fields,
     timestamps: config.timestamps ?? true,
     drafts: config.drafts ?? true,
     labels: { singular, plural },
     admin: { ...config.admin, useAsTitle },
+    seoConfig: { enabled: seoEnabled, urlPattern },
   };
 }
 

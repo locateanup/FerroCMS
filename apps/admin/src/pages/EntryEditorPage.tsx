@@ -87,14 +87,36 @@ export function EntryEditorPage() {
       <div className="editor-layout">
         <div className="card">
           {collection ? (
-            collection.fields.map((field) => (
-              <FieldInput
-                key={field.name}
-                field={field}
-                value={data[field.name]}
-                onChange={(v) => setField(field.name, v)}
-              />
-            ))
+            collection.fields.map((field, i) => {
+              const group = field.admin?.group;
+              const prevGroup = i > 0 ? collection.fields[i - 1]?.admin?.group : undefined;
+              const showHeader = group && group !== prevGroup;
+              return (
+                <div key={field.name}>
+                  {showHeader && (
+                    <div
+                      style={{
+                        margin: '8px 0 12px',
+                        paddingTop: 16,
+                        borderTop: '1px solid var(--border)',
+                        fontSize: 12,
+                        fontWeight: 600,
+                        color: 'var(--text-secondary)',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.04em',
+                      }}
+                    >
+                      {group}
+                    </div>
+                  )}
+                  <FieldInput
+                    field={field}
+                    value={data[field.name]}
+                    onChange={(v) => setField(field.name, v)}
+                  />
+                </div>
+              );
+            })
           ) : (
             <p className="muted">Unknown collection.</p>
           )}

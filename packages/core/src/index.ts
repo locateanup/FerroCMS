@@ -4,3 +4,4 @@ export * from './validation.js';
 export * from './access.js';
 export * from './hooks.js';
 export * from './slug.js';
+export * from './seo.js';
