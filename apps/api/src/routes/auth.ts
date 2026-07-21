@@ -41,7 +41,7 @@ async function parse<T>(c: Context<AppBindings>, schema: z.ZodType<T>): Promise<
 // First-run registration: only allowed when there are zero users. Creates an admin.
 router.post('/register', async (c) => {
   const db = c.get('db');
-  const [row] = await db.select({ count: sql<number>`count(*)::int` }).from(users);
+  const [row] = await db.select({ count: sql<number>`count(*)` }).from(users);
   if ((row?.count ?? 0) > 0) {
     throw errors.forbidden('Registration is closed. Ask an admin to invite you.');
   }

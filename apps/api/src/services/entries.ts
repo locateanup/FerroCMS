@@ -71,7 +71,7 @@ export async function listEntries(
     .offset(opts.offset);
 
   const [count] = await db
-    .select({ value: sql<number>`count(*)::int` })
+    .select({ value: sql<number>`count(*)` })
     .from(entries)
     .where(where);
 

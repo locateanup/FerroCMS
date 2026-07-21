@@ -15,15 +15,8 @@
       "bucket_name": "ferrocms-media"
     }
   ],
-  // KV namespace for sessions + cache. Create with:
-  //   wrangler kv namespace create SESSIONS
-  // then paste the id below.
-  "kv_namespaces": [
-    {
-      "binding": "SESSIONS",
-      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
-    }
-  ],
+  // Sessions/cache live in the libSQL (Turso) database — no KV namespace needed.
+  // Provide DATABASE_URL + DATABASE_AUTH_TOKEN as secrets (`wrangler secret put`).
   "vars": {
     "ADMIN_ORIGIN": "http://localhost:5173",
     "CORS_ORIGINS": "http://localhost:5173,http://localhost:3000",

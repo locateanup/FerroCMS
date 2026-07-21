@@ -1,7 +1,7 @@
 /** Cloudflare Workers implementations of the platform adapters. */
 
 import type { Env } from '../env.js';
-import type { AppConfig, KVAdapter, StorageAdapter } from './types.js';
+import type { AppConfig, StorageAdapter } from './types.js';
 
 export function r2Storage(bucket: R2Bucket): StorageAdapter {
   return {
@@ -16,14 +16,6 @@ export function r2Storage(bucket: R2Bucket): StorageAdapter {
     async delete(key) {
       await bucket.delete(key);
     },
-  };
-}
-
-export function kvFromNamespace(ns: KVNamespace): KVAdapter {
-  return {
-    get: (key) => ns.get(key),
-    put: (key, value, opts) => ns.put(key, value, { expirationTtl: opts?.expirationTtl }),
-    delete: (key) => ns.delete(key),
   };
 }
 

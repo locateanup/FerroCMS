@@ -2,13 +2,17 @@
 
 import { createDb } from '@ferrocms/db';
 import { createApp } from './app.js';
-import { configFromEnv, kvFromNamespace, r2Storage } from './platform/cloudflare.js';
+import { configFromEnv, r2Storage } from './platform/cloudflare.js';
+import { sqlKV } from './platform/kv.js';
 
-const app = createApp((c) => ({
-  db: createDb(c.env.DATABASE_URL),
-  storage: r2Storage(c.env.MEDIA),
-  kv: kvFromNamespace(c.env.SESSIONS),
-  config: configFromEnv(c.env),
-}));
+const app = createApp((c) => {
+  const db = createDb(c.env.DATABASE_URL, c.env.DATABASE_AUTH_TOKEN);
+  return {
+    db,
+    storage: r2Storage(c.env.MEDIA),
+    kv: sqlKV(db),
+    config: configFromEnv(c.env),
+  };
+});
 
 export default app;

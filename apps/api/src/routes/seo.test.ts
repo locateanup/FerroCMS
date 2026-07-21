@@ -5,10 +5,9 @@ import { buildSitemapXml } from './seo.js';
 const env = {
   ADMIN_ORIGIN: 'http://localhost:5173',
   SITE_URL: 'https://mysite.com',
-  DATABASE_URL: 'postgresql://user:pass@ep-test.us-east-1.aws.neon.tech/ferrocms',
+  DATABASE_URL: 'http://127.0.0.1:8080',
   AUTH_SECRET: 'test-secret',
   MEDIA: {} as never,
-  SESSIONS: {} as never,
 };
 
 describe('buildSitemapXml', () => {

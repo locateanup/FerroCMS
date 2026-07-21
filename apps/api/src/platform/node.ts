@@ -2,9 +2,7 @@
 
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import { eq } from 'drizzle-orm';
-import { kv as kvTable, type Db } from '@ferrocms/db';
-import type { AppConfig, KVAdapter, StorageAdapter } from './types.js';
+import type { AppConfig, StorageAdapter } from './types.js';
 
 /** Filesystem-backed object storage (swap for S3 in production if desired). */
 export function fsStorage(root: string): StorageAdapter {
@@ -35,33 +33,6 @@ export function fsStorage(root: string): StorageAdapter {
       const path = pathFor(key);
       await rm(path, { force: true });
       await rm(`${path}.type`, { force: true });
-    },
-  };
-}
-
-/** Postgres-backed KV (durable sessions/cache without Cloudflare KV). */
-export function pgKV(db: Db): KVAdapter {
-  return {
-    async get(key) {
-      const [row] = await db.select().from(kvTable).where(eq(kvTable.key, key)).limit(1);
-      if (!row) return null;
-      if (row.expiresAt && row.expiresAt.getTime() <= Date.now()) {
-        await db.delete(kvTable).where(eq(kvTable.key, key));
-        return null;
-      }
-      return row.value;
-    },
-    async put(key, value, opts) {
-      const expiresAt = opts?.expirationTtl
-        ? new Date(Date.now() + opts.expirationTtl * 1000)
-        : null;
-      await db
-        .insert(kvTable)
-        .values({ key, value, expiresAt })
-        .onConflictDoUpdate({ target: kvTable.key, set: { value, expiresAt } });
-    },
-    async delete(key) {
-      await db.delete(kvTable).where(eq(kvTable.key, key));
     },
   };
 }

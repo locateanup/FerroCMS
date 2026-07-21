@@ -4,8 +4,10 @@ import type { AppConfig, KVAdapter, StorageAdapter } from './platform/types.js';
 
 /** Cloudflare bindings + secrets available to the Worker. */
 export interface Env {
-  /** Neon Postgres connection string (secret). */
+  /** Turso/libSQL database URL, e.g. libsql://your-db.turso.io (secret). */
   DATABASE_URL: string;
+  /** Turso auth token (secret). */
+  DATABASE_AUTH_TOKEN?: string;
   /** Secret for signing/deriving auth material (secret). */
   AUTH_SECRET: string;
   /** Origin of the admin SPA, used for CORS + cookies. */
@@ -20,8 +22,6 @@ export interface Env {
   WEBHOOK_SECRET?: string;
   /** R2 bucket for the media library. */
   MEDIA: R2Bucket;
-  /** KV namespace for sessions and cache. */
-  SESSIONS: KVNamespace;
 }
 
 export interface AuthUser {

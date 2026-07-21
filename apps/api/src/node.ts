@@ -7,15 +7,16 @@
 import { serve } from '@hono/node-server';
 import { createDb } from '@ferrocms/db';
 import { createApp } from './app.js';
-import { configFromProcessEnv, fsStorage, pgKV } from './platform/node.js';
+import { configFromProcessEnv, fsStorage } from './platform/node.js';
+import { sqlKV } from './platform/kv.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL is required.');
 
-const db = createDb(databaseUrl);
+const db = createDb(databaseUrl, process.env.DATABASE_AUTH_TOKEN);
 const config = configFromProcessEnv();
 const storage = fsStorage(process.env.MEDIA_DIR ?? './.ferrocms/media');
-const kv = pgKV(db);
+const kv = sqlKV(db);
 
 // The context is the same for every request on Node — build it once.
 const app = createApp(() => ({ db, storage, kv, config }));

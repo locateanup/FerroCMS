@@ -48,10 +48,12 @@ git-based tools like Keystatic, without the operational weight of a self-hosted 
 
 - **Headless & framework-agnostic** — your front-end stays yours. Next.js, Vue, Nuxt, Astro,
   SvelteKit, Remix, or plain fetch.
-- **Cloudflare-native** — runs on Workers, R2, KV, and Queues, backed by serverless Postgres. Global,
-  cheap, and fast, with no servers to babysit.
+- **Cloudflare-native** — runs on Workers and R2, backed by libSQL (Turso). Global, cheap, and fast,
+  with no servers to babysit.
 - **Runs anywhere** — deploy to Cloudflare Workers _or_ Node (Docker / VPS / Render / Fly) from one
-  codebase. Only PostgreSQL is required.
+  codebase. Only a libSQL/Turso database is required.
+- **Cost-effective** — designed to run on free tiers: Turso (libSQL) for data, R2 for media, Workers
+  for compute.
 - **Type-safe end to end** — one TypeScript content-type definition drives the database schema, runtime
   validation (Zod), the REST API, the admin form, and the client SDK's types.
 - **Config as code** — version your content model in Git, review it in PRs, no clicking through admin
@@ -122,15 +124,14 @@ Legend: ✅ implemented · 🚧 on the roadmap
 
 ## Architecture
 
-| Layer            | Tech                                                                     |
-| ---------------- | ------------------------------------------------------------------------ |
-| API / backend    | [Hono](https://hono.dev) on Cloudflare Workers                           |
-| Admin UI         | React + Vite SPA                                                         |
-| Database         | PostgreSQL (Neon serverless) via [Drizzle ORM](https://orm.drizzle.team) |
-| Media            | Cloudflare R2                                                            |
-| Sessions / cache | Workers KV                                                               |
-| Background jobs  | Cloudflare Queues                                                        |
-| Content model    | Config-as-code, TypeScript-first, validated with Zod                     |
+| Layer            | Tech                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------- |
+| API / backend    | [Hono](https://hono.dev) on Cloudflare Workers                                            |
+| Admin UI         | React + Vite SPA                                                                          |
+| Database         | libSQL / SQLite ([Turso](https://turso.tech)) via [Drizzle ORM](https://orm.drizzle.team) |
+| Media            | Cloudflare R2 (or filesystem on Node)                                                     |
+| Sessions / cache | libSQL (`kv` table) — works on both runtimes                                              |
+| Content model    | Config-as-code, TypeScript-first, validated with Zod                                      |
 
 ### Monorepo layout
 
@@ -146,16 +147,16 @@ packages/
 
 ## Quick start
 
-**Prerequisites:** Node.js 20+, [pnpm](https://pnpm.io) 10+, a free [Neon](https://neon.tech) Postgres
-database, and a [Cloudflare](https://dash.cloudflare.com) account (for R2 + KV).
+**Prerequisites:** Node.js 20+, [pnpm](https://pnpm.io) 10+, and a free [Turso](https://turso.tech)
+(libSQL) database. For local dev you can instead run `turso dev` (no account needed).
 
 ```bash
 git clone https://github.com/locateanup/FerroCMS.git
 cd FerroCMS
 pnpm install
 
-cp .env.example apps/api/.dev.vars     # add DATABASE_URL + AUTH_SECRET
-pnpm --filter @ferrocms/db db:push     # create tables on your Neon database
+cp .env.example apps/api/.dev.vars     # add DATABASE_URL + DATABASE_AUTH_TOKEN + AUTH_SECRET
+pnpm --filter @ferrocms/db db:push     # create tables on your Turso database
 
 pnpm dev                               # runs the API worker + admin SPA
 ```
@@ -164,26 +165,27 @@ Open the admin at **http://localhost:5173** and register the first admin account
 
 ## Deployment
 
-Same codebase, two runtimes — pick whichever fits your infrastructure. **PostgreSQL is the only hard
-requirement.**
+Same codebase, two runtimes — pick whichever fits your infrastructure. **A libSQL/Turso database is
+the only hard requirement**, and sessions live in it too (no separate KV service).
 
 ### Cloudflare (edge)
 
 ```bash
 wrangler r2 bucket create ferrocms-media
-wrangler kv namespace create SESSIONS      # paste the id into apps/api/wrangler.jsonc
-wrangler secret put DATABASE_URL
+wrangler secret put DATABASE_URL            # your Turso libsql:// URL
+wrangler secret put DATABASE_AUTH_TOKEN
 wrangler secret put AUTH_SECRET
-pnpm --filter @ferrocms/api deploy         # → your Workers account
+pnpm --filter @ferrocms/api deploy          # → your Workers account
 # deploy the admin (Vite build) to Cloudflare Pages
 ```
 
 ### Node (Docker / VPS / anywhere)
 
-No Cloudflare account needed — uses filesystem storage and Postgres-backed KV.
+No Cloudflare account needed — uses filesystem storage; sessions/cache live in the database.
 
 ```bash
-export DATABASE_URL="postgres://…"
+export DATABASE_URL="libsql://your-db.turso.io"
+export DATABASE_AUTH_TOKEN="…"
 export AUTH_SECRET="$(openssl rand -base64 32)"
 export MEDIA_DIR="/var/lib/ferrocms/media"   # persist this volume
 pnpm --filter @ferrocms/db db:push
@@ -244,9 +246,9 @@ star it, and follow along — feedback shapes the roadmap.
 
 **Do I have to use Cloudflare?**
 No. FerroCMS is Cloudflare-first but **runs anywhere**. It ships two runtimes from the same codebase:
-Cloudflare Workers (R2 + Workers KV) and **Node** (filesystem storage + Postgres-backed KV) for
-Docker, a VPS, Render, Fly, or bare metal. All you always need is a PostgreSQL database. See
-[Deployment](#deployment).
+Cloudflare Workers (R2 for media) and **Node** (filesystem storage) for Docker, a VPS, Render, Fly, or
+bare metal. libSQL (Turso) is the database on both, and sessions live in it — so all you ever need is a
+libSQL database. See [Deployment](#deployment).
 
 **How is this different from Payload, Strapi, or Directus?**
 Same category (headless, code-first), but FerroCMS targets the **Cloudflare edge** specifically and

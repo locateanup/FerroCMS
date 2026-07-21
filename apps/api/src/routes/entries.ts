@@ -55,13 +55,13 @@ function requireCollection(slug: string): ResolvedCollection {
   return collection;
 }
 
-/** Postgres unique-violation guard so slug clashes return 409, not 500. */
+/** libSQL/SQLite unique-violation guard so slug clashes return 409, not 500. */
 function isUniqueViolation(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null) return false;
+  const e = err as { code?: string; message?: string };
   return (
-    typeof err === 'object' &&
-    err !== null &&
-    'code' in err &&
-    (err as { code?: string }).code === '23505'
+    (e.code?.includes('CONSTRAINT') ?? false) ||
+    (e.message?.includes('UNIQUE constraint failed') ?? false)
   );
 }
 

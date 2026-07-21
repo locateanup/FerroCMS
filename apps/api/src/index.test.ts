@@ -4,10 +4,9 @@ import app from './index.js';
 const env = {
   ADMIN_ORIGIN: 'http://localhost:5173',
   CORS_ORIGINS: 'http://localhost:3000',
-  DATABASE_URL: 'postgresql://user:pass@ep-test.us-east-1.aws.neon.tech/ferrocms',
+  DATABASE_URL: 'http://127.0.0.1:8080',
   AUTH_SECRET: 'test-secret',
   MEDIA: {} as never,
-  SESSIONS: {} as never,
 };
 
 describe('app', () => {

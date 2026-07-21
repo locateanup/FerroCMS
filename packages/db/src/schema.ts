@@ -1,83 +1,60 @@
 /**
- * FerroCMS database schema (PostgreSQL via Drizzle).
+ * FerroCMS database schema (SQLite / libSQL — Turso).
  *
- * Content is stored generically: one `entries` row per document, with the
- * typed field values in a JSONB `data` column and hot fields (slug, status,
+ * Content is stored generically: one `entries` row per document, with the typed
+ * field values in a JSON `data` column and hot fields (slug, status,
  * publishedAt) promoted to real columns for indexing and querying. The shape of
  * `data` is enforced at the application layer from the collection definition.
  */
 
 import { sql } from 'drizzle-orm';
-import {
-  bigint,
-  index,
-  integer,
-  jsonb,
-  pgEnum,
-  pgTable,
-  text,
-  timestamp,
-  uniqueIndex,
-  uuid,
-} from 'drizzle-orm/pg-core';
+import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
-export const roleEnum = pgEnum('role', ['admin', 'editor', 'author', 'viewer']);
+const ROLES = ['admin', 'editor', 'author', 'viewer'] as const;
+const STATUSES = ['draft', 'published', 'scheduled', 'archived'] as const;
 
-export const entryStatusEnum = pgEnum('entry_status', [
-  'draft',
-  'published',
-  'scheduled',
-  'archived',
-]);
+const now = sql`(unixepoch())`;
 
-export const users = pgTable('users', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const users = sqliteTable('users', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   email: text('email').notNull().unique(),
   passwordHash: text('password_hash').notNull(),
   name: text('name'),
-  role: roleEnum('role').notNull().default('author'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  role: text('role', { enum: ROLES }).notNull().default('author'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
 });
 
-export const sessions = pgTable(
-  'sessions',
-  {
-    id: text('id').primaryKey(), // opaque random token (hashed before storage)
-    userId: uuid('user_id')
-      .notNull()
-      .references(() => users.id, { onDelete: 'cascade' }),
-    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => ({
-    userIdx: index('sessions_user_idx').on(t.userId),
-  }),
-);
-
-export const apiKeys = pgTable('api_keys', {
-  id: uuid('id').primaryKey().defaultRandom(),
+export const apiKeys = sqliteTable('api_keys', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
   name: text('name').notNull(),
   hashedKey: text('hashed_key').notNull().unique(),
-  role: roleEnum('role').notNull().default('viewer'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+  role: text('role', { enum: ROLES }).notNull().default('viewer'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
 });
 
-export const entries = pgTable(
+export const entries = sqliteTable(
   'entries',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
     collection: text('collection').notNull(),
-    status: entryStatusEnum('status').notNull().default('draft'),
+    status: text('status', { enum: STATUSES }).notNull().default('draft'),
     slug: text('slug'),
-    data: jsonb('data')
+    data: text('data', { mode: 'json' })
+      .$type<Record<string, unknown>>()
       .notNull()
-      .default(sql`'{}'::jsonb`),
-    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
-    publishedAt: timestamp('published_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+      .default(sql`'{}'`),
+    authorId: text('author_id').references(() => users.id, { onDelete: 'set null' }),
+    publishedAt: integer('published_at', { mode: 'timestamp' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
   },
   (t) => ({
     collectionStatusIdx: index('entries_collection_status_idx').on(t.collection, t.status),
@@ -88,47 +65,48 @@ export const entries = pgTable(
   }),
 );
 
-export const revisions = pgTable(
+export const revisions = sqliteTable(
   'revisions',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
-    entryId: uuid('entry_id')
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    entryId: text('entry_id')
       .notNull()
       .references(() => entries.id, { onDelete: 'cascade' }),
     collection: text('collection').notNull(),
-    status: entryStatusEnum('status').notNull(),
-    data: jsonb('data').notNull(),
-    authorId: uuid('author_id').references(() => users.id, { onDelete: 'set null' }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    status: text('status', { enum: STATUSES }).notNull(),
+    data: text('data', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+    authorId: text('author_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
   },
   (t) => ({
     entryIdx: index('revisions_entry_idx').on(t.entryId),
   }),
 );
 
-export const media = pgTable('media', {
-  id: uuid('id').primaryKey().defaultRandom(),
-  key: text('key').notNull().unique(), // R2 object key
+export const media = sqliteTable('media', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  key: text('key').notNull().unique(),
   filename: text('filename').notNull(),
   mimeType: text('mime_type').notNull(),
-  size: bigint('size', { mode: 'number' }).notNull(),
+  size: integer('size').notNull(),
   width: integer('width'),
   height: integer('height'),
   alt: text('alt'),
-  uploadedById: uuid('uploaded_by_id').references(() => users.id, { onDelete: 'set null' }),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  uploadedById: text('uploaded_by_id').references(() => users.id, { onDelete: 'set null' }),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
 });
 
-/**
- * Generic key/value store with optional expiry. Used by the Node runtime as a
- * durable KV backend (sessions, cache) in place of Cloudflare Workers KV.
- */
-export const kv = pgTable(
+/** Generic key/value store with optional expiry (sessions, cache). */
+export const kv = sqliteTable(
   'kv',
   {
     key: text('key').primaryKey(),
     value: text('value').notNull(),
-    expiresAt: timestamp('expires_at', { withTimezone: true }),
+    expiresAt: integer('expires_at', { mode: 'timestamp' }),
   },
   (t) => ({
     expiresIdx: index('kv_expires_idx').on(t.expiresAt),
@@ -137,7 +115,6 @@ export const kv = pgTable(
 
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-export type Session = typeof sessions.$inferSelect;
 export type ApiKey = typeof apiKeys.$inferSelect;
 export type Entry = typeof entries.$inferSelect;
 export type NewEntry = typeof entries.$inferInsert;
