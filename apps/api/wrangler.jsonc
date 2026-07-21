@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ferrocms-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2024-11-27",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": {
+    "enabled": true
+  },
+  // R2 bucket for the media library. Create with:
+  //   wrangler r2 bucket create ferrocms-media
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "ferrocms-media"
+    }
+  ],
+  // KV namespace for sessions + cache. Create with:
+  //   wrangler kv namespace create SESSIONS
+  // then paste the id below.
+  "kv_namespaces": [
+    {
+      "binding": "SESSIONS",
+      "id": "REPLACE_WITH_KV_NAMESPACE_ID"
+    }
+  ],
+  "vars": {
+    "ADMIN_ORIGIN": "http://localhost:5173",
+    "CORS_ORIGINS": "http://localhost:5173,http://localhost:3000"
+  }
+  // Secrets (DATABASE_URL, AUTH_SECRET) are provided via `.dev.vars` locally
+  // and `wrangler secret put` in production — never commit them here.
+}

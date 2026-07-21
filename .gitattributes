@@ -1,0 +1,10 @@
+# Normalize line endings to LF across platforms.
+* text=auto eol=lf
+
+# Binary files should not be modified.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.pdf binary
