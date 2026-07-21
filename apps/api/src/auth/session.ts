@@ -1,7 +1,8 @@
 import type { Context } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
 import type { Role } from '@ferrocms/core';
-import type { AppBindings, Env } from '../env.js';
+import type { AppBindings } from '../env.js';
+import type { KVAdapter } from '../platform/types.js';
 import { randomToken, sha256Hex } from '../lib/crypto.js';
 
 export const SESSION_COOKIE = 'ferrocms_session';
@@ -18,18 +19,16 @@ function kvKey(tokenHash: string): string {
 }
 
 /** Create a session in KV and return the opaque token (store the hash, not the token). */
-export async function createSession(env: Env, payload: SessionPayload): Promise<string> {
+export async function createSession(kv: KVAdapter, payload: SessionPayload): Promise<string> {
   const token = randomToken();
   const hash = await sha256Hex(token);
-  await env.SESSIONS.put(kvKey(hash), JSON.stringify(payload), {
-    expirationTtl: SESSION_TTL_SECONDS,
-  });
+  await kv.put(kvKey(hash), JSON.stringify(payload), { expirationTtl: SESSION_TTL_SECONDS });
   return token;
 }
 
-export async function readSession(env: Env, token: string): Promise<SessionPayload | null> {
+export async function readSession(kv: KVAdapter, token: string): Promise<SessionPayload | null> {
   const hash = await sha256Hex(token);
-  const raw = await env.SESSIONS.get(kvKey(hash));
+  const raw = await kv.get(kvKey(hash));
   if (!raw) return null;
   try {
     return JSON.parse(raw) as SessionPayload;
@@ -38,9 +37,9 @@ export async function readSession(env: Env, token: string): Promise<SessionPaylo
   }
 }
 
-export async function destroySession(env: Env, token: string): Promise<void> {
+export async function destroySession(kv: KVAdapter, token: string): Promise<void> {
   const hash = await sha256Hex(token);
-  await env.SESSIONS.delete(kvKey(hash));
+  await kv.delete(kvKey(hash));
 }
 
 export function setSessionCookie(c: Context<AppBindings>, token: string): void {

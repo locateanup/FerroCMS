@@ -11,22 +11,32 @@ import type { AppBindings } from '../env.js';
 import { getCollection } from '../config/collections.js';
 import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
-import { dispatchWebhook, type WebhookEventType } from '../lib/webhooks.js';
+import { background } from '../lib/background.js';
+import { sendWebhooks, type WebhookEventType } from '../lib/webhooks.js';
 import type { Entry } from '@ferrocms/db';
 import * as svc from '../services/entries.js';
 
 const router = new Hono<AppBindings>();
 
-/** Fire a content webhook in the background. */
+/** Fire a content webhook in the background (no-op if none configured). */
 function emitWebhook(c: Context<AppBindings>, entry: Entry, event: WebhookEventType): void {
-  dispatchWebhook(c.env, (p) => c.executionCtx.waitUntil(p), {
-    event,
-    collection: entry.collection,
-    id: entry.id,
-    slug: entry.slug,
-    status: entry.status,
-    timestamp: new Date().toISOString(),
-  });
+  const config = c.get('config');
+  if (config.webhookUrls.length === 0) return;
+  background(
+    c,
+    sendWebhooks({
+      urls: config.webhookUrls,
+      secret: config.webhookSecret,
+      event: {
+        event,
+        collection: entry.collection,
+        id: entry.id,
+        slug: entry.slug,
+        status: entry.status,
+        timestamp: new Date().toISOString(),
+      },
+    }),
+  );
 }
 
 const statusSchema = z.enum(ENTRY_STATUSES);

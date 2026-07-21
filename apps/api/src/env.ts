@@ -1,5 +1,6 @@
 import type { Db } from '@ferrocms/db';
 import type { Role } from '@ferrocms/core';
+import type { AppConfig, KVAdapter, StorageAdapter } from './platform/types.js';
 
 /** Cloudflare bindings + secrets available to the Worker. */
 export interface Env {
@@ -35,6 +36,9 @@ export interface AuthUser {
 export interface Variables {
   db: Db;
   user: AuthUser | null;
+  storage: StorageAdapter;
+  kv: KVAdapter;
+  config: AppConfig;
 }
 
 export type AppBindings = { Bindings: Env; Variables: Variables };

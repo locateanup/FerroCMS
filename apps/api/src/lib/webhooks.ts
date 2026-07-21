@@ -4,7 +4,6 @@
  * configured URL, optionally HMAC-signed so receivers can verify authenticity.
  */
 
-import type { Env } from '../env.js';
 import { hmacSha256Hex } from './crypto.js';
 
 export type WebhookEventType =
@@ -22,13 +21,6 @@ export interface WebhookEvent {
 export const SIGNATURE_HEADER = 'x-ferrocms-signature';
 
 /** Parse the configured webhook URLs from the environment. */
-export function webhookUrls(env: Env): string[] {
-  return (env.WEBHOOK_URLS ?? '')
-    .split(',')
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
-
 interface SendOptions {
   urls: string[];
   secret?: string;
@@ -52,18 +44,4 @@ export async function sendWebhooks(options: SendOptions): Promise<void> {
       ),
     ),
   );
-}
-
-/**
- * Fire webhooks in the background (via waitUntil) so the API response isn't
- * blocked on delivery. No-op when no URLs are configured.
- */
-export function dispatchWebhook(
-  env: Env,
-  waitUntil: (promise: Promise<unknown>) => void,
-  event: WebhookEvent,
-): void {
-  const urls = webhookUrls(env);
-  if (urls.length === 0) return;
-  waitUntil(sendWebhooks({ urls, secret: env.WEBHOOK_SECRET, event }));
 }

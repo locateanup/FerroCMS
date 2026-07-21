@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "wrangler dev",
+    "dev:node": "tsx watch src/node.ts",
+    "start:node": "tsx src/node.ts",
     "deploy": "wrangler deploy",
     "build": "tsc -p tsconfig.json --noEmit",
     "typecheck": "tsc -p tsconfig.json --noEmit",
@@ -14,12 +16,15 @@
   "dependencies": {
     "@ferrocms/core": "workspace:*",
     "@ferrocms/db": "workspace:*",
+    "@hono/node-server": "^1.13.7",
     "drizzle-orm": "^0.36.4",
     "hono": "^4.6.14",
     "zod": "^3.23.8"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20241127.0",
+    "@types/node": "^22.9.0",
+    "tsx": "^4.19.2",
     "vitest": "^2.1.1",
     "wrangler": "^3.99.0"
   }

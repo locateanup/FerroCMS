@@ -1,7 +1,6 @@
 import type { Context } from 'hono';
 import { buildSeo, fillUrlPattern, joinUrl } from '@ferrocms/core';
 import type { AppBindings } from '../env.js';
-import { createDb } from '@ferrocms/db';
 import { collections } from '../config/collections.js';
 import { listEntries } from '../services/entries.js';
 
@@ -31,12 +30,13 @@ export function buildSitemapXml(urls: SitemapUrl[]): string {
 }
 
 function siteUrl(c: Context<AppBindings>): string {
-  return (c.env.SITE_URL ?? c.env.ADMIN_ORIGIN).replace(/\/+$/, '');
+  const config = c.get('config');
+  return (config.siteUrl ?? config.adminOrigin).replace(/\/+$/, '');
 }
 
 /** GET /sitemap.xml — published entries from SEO-enabled collections. */
 export async function sitemapHandler(c: Context<AppBindings>): Promise<Response> {
-  const db = createDb(c.env.DATABASE_URL);
+  const db = c.get('db');
   const base = siteUrl(c);
   const urls: SitemapUrl[] = [];
 

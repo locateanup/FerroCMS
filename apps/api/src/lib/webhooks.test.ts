@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { sendWebhooks, webhookUrls, SIGNATURE_HEADER, type WebhookEvent } from './webhooks.js';
+import { sendWebhooks, SIGNATURE_HEADER, type WebhookEvent } from './webhooks.js';
 import { hmacSha256Hex } from './crypto.js';
 
 const event: WebhookEvent = {
@@ -10,16 +10,6 @@ const event: WebhookEvent = {
   status: 'published',
   timestamp: '2026-01-01T00:00:00.000Z',
 };
-
-describe('webhookUrls', () => {
-  it('parses and trims comma-separated urls', () => {
-    expect(webhookUrls({ WEBHOOK_URLS: ' https://a.com , https://b.com ' } as never)).toEqual([
-      'https://a.com',
-      'https://b.com',
-    ]);
-    expect(webhookUrls({} as never)).toEqual([]);
-  });
-});
 
 describe('sendWebhooks', () => {
   it('POSTs the event to every url', async () => {

@@ -119,6 +119,22 @@ export const media = pgTable('media', {
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Generic key/value store with optional expiry. Used by the Node runtime as a
+ * durable KV backend (sessions, cache) in place of Cloudflare Workers KV.
+ */
+export const kv = pgTable(
+  'kv',
+  {
+    key: text('key').primaryKey(),
+    value: text('value').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }),
+  },
+  (t) => ({
+    expiresIdx: index('kv_expires_idx').on(t.expiresAt),
+  }),
+);
+
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type Session = typeof sessions.$inferSelect;
@@ -128,3 +144,4 @@ export type NewEntry = typeof entries.$inferInsert;
 export type Revision = typeof revisions.$inferSelect;
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
+export type Kv = typeof kv.$inferSelect;

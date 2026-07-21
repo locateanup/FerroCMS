@@ -5,9 +5,9 @@
 ### The open-source, headless, Cloudflare-native CMS for JavaScript sites
 
 A **WordPress alternative for developers** — a fast, type-safe, database-backed content platform
-that runs entirely on **Cloudflare's edge**. Model content in TypeScript, edit it in a clean admin
-dashboard, and pull it into your **Next.js**, **Vue**, **Astro**, **SvelteKit**, or any-JS front-end
-through an auto-generated, typed API.
+that runs on **Cloudflare's edge _or_ any Node host**. Model content in TypeScript, edit it in a clean
+admin dashboard, and pull it into your **Next.js**, **Vue**, **Astro**, **SvelteKit**, or any-JS
+front-end through an auto-generated, typed API.
 
 [![CI](https://github.com/locateanup/FerroCMS/actions/workflows/ci.yml/badge.svg)](https://github.com/locateanup/FerroCMS/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
@@ -36,6 +36,7 @@ git-based tools like Keystatic, without the operational weight of a self-hosted 
 - [How it compares](#how-it-compares)
 - [Architecture](#architecture)
 - [Quick start](#quick-start)
+- [Deployment](#deployment)
 - [SEO](#seo)
 - [Consuming content in your site](#consuming-content-in-your-site)
 - [Roadmap](#roadmap)
@@ -49,6 +50,8 @@ git-based tools like Keystatic, without the operational weight of a self-hosted 
   SvelteKit, Remix, or plain fetch.
 - **Cloudflare-native** — runs on Workers, R2, KV, and Queues, backed by serverless Postgres. Global,
   cheap, and fast, with no servers to babysit.
+- **Runs anywhere** — deploy to Cloudflare Workers _or_ Node (Docker / VPS / Render / Fly) from one
+  codebase. Only PostgreSQL is required.
 - **Type-safe end to end** — one TypeScript content-type definition drives the database schema, runtime
   validation (Zod), the REST API, the admin form, and the client SDK's types.
 - **Config as code** — version your content model in Git, review it in PRs, no clicking through admin
@@ -133,7 +136,7 @@ Legend: ✅ implemented · 🚧 on the roadmap
 
 ```
 apps/
-  api/       Hono Worker — REST API, auth, media, SEO, webhooks
+  api/       Hono API — REST, auth, media, SEO, webhooks (Cloudflare Workers + Node entry points)
   admin/     React + Vite admin dashboard
 packages/
   core/      content-type / field definitions, validation, SEO, hook engine
@@ -158,6 +161,38 @@ pnpm dev                               # runs the API worker + admin SPA
 ```
 
 Open the admin at **http://localhost:5173** and register the first admin account.
+
+## Deployment
+
+Same codebase, two runtimes — pick whichever fits your infrastructure. **PostgreSQL is the only hard
+requirement.**
+
+### Cloudflare (edge)
+
+```bash
+wrangler r2 bucket create ferrocms-media
+wrangler kv namespace create SESSIONS      # paste the id into apps/api/wrangler.jsonc
+wrangler secret put DATABASE_URL
+wrangler secret put AUTH_SECRET
+pnpm --filter @ferrocms/api deploy         # → your Workers account
+# deploy the admin (Vite build) to Cloudflare Pages
+```
+
+### Node (Docker / VPS / anywhere)
+
+No Cloudflare account needed — uses filesystem storage and Postgres-backed KV.
+
+```bash
+export DATABASE_URL="postgres://…"
+export AUTH_SECRET="$(openssl rand -base64 32)"
+export MEDIA_DIR="/var/lib/ferrocms/media"   # persist this volume
+pnpm --filter @ferrocms/db db:push
+pnpm --filter @ferrocms/api start:node       # serves the API on $PORT (default 8787)
+```
+
+The runtime is chosen by which entry point runs (`src/index.ts` for Workers, `src/node.ts` for Node);
+platform differences (object storage, KV, background tasks) sit behind small adapters, so the API,
+auth, media, SEO, and webhooks behave identically on both.
 
 ## SEO
 
@@ -208,8 +243,10 @@ Not yet. Phase 1 + SEO are implemented and tested, but the project is in early d
 star it, and follow along — feedback shapes the roadmap.
 
 **Do I have to use Cloudflare?**
-It's designed Cloudflare-first (Workers, R2, KV) with Neon Postgres. Other runtimes aren't a supported
-target today, but the core (`@ferrocms/core`) and SDK are runtime-agnostic TypeScript.
+No. FerroCMS is Cloudflare-first but **runs anywhere**. It ships two runtimes from the same codebase:
+Cloudflare Workers (R2 + Workers KV) and **Node** (filesystem storage + Postgres-backed KV) for
+Docker, a VPS, Render, Fly, or bare metal. All you always need is a PostgreSQL database. See
+[Deployment](#deployment).
 
 **How is this different from Payload, Strapi, or Directus?**
 Same category (headless, code-first), but FerroCMS targets the **Cloudflare edge** specifically and

@@ -8,6 +8,13 @@
       "when": 1784640865297,
       "tag": "0000_magenta_korg",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1784648730388,
+      "tag": "0001_tearful_nova",
+      "breakpoints": true
     }
   ]
 }

@@ -52,7 +52,7 @@ router.post('/register', async (c) => {
     .values({ email: body.email, passwordHash, name: body.name ?? null, role: 'admin' })
     .returning();
 
-  const token = await createSession(c.env, {
+  const token = await createSession(c.get('kv'), {
     userId: user!.id,
     role: user!.role,
     email: user!.email,
@@ -68,14 +68,18 @@ router.post('/login', async (c) => {
   const valid = user ? await verifyPassword(body.password, user.passwordHash) : false;
   if (!user || !valid) throw errors.unauthorized('Invalid email or password.');
 
-  const token = await createSession(c.env, { userId: user.id, role: user.role, email: user.email });
+  const token = await createSession(c.get('kv'), {
+    userId: user.id,
+    role: user.role,
+    email: user.email,
+  });
   setSessionCookie(c, token);
   return c.json(publicUser(user));
 });
 
 router.post('/logout', async (c) => {
   const token = getSessionToken(c);
-  if (token) await destroySession(c.env, token);
+  if (token) await destroySession(c.get('kv'), token);
   clearSessionCookie(c);
   return c.json({ ok: true });
 });

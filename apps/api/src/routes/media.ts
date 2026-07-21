@@ -51,7 +51,7 @@ router.post('/', async (c) => {
   const key = `${new Date().getUTCFullYear()}/${randomToken(8)}${ext ? `.${ext}` : ''}`;
 
   const bytes = await file.arrayBuffer();
-  await c.env.MEDIA.put(key, bytes, { httpMetadata: { contentType: file.type } });
+  await c.get('storage').put(key, bytes, { contentType: file.type });
 
   const altValue = form.get('alt');
   const [row] = await c
@@ -77,15 +77,15 @@ router.get('/', async (c) => {
   return c.json({ items: rows });
 });
 
-// Serve a media object publicly from R2.
+// Serve a media object publicly from storage (R2 or filesystem).
 router.get('/file/:key{.+}', async (c) => {
   const key = c.req.param('key');
-  const object = await c.env.MEDIA.get(key);
+  const object = await c.get('storage').get(key);
   if (!object) throw errors.notFound('File');
 
   const headers = new Headers();
-  object.writeHttpMetadata(headers);
-  headers.set('etag', object.httpEtag);
+  if (object.contentType) headers.set('content-type', object.contentType);
+  if (object.etag) headers.set('etag', object.etag);
   headers.set('cache-control', 'public, max-age=31536000, immutable');
   return new Response(object.body, { headers });
 });
@@ -98,7 +98,7 @@ router.delete('/:id', async (c) => {
   const [row] = await db.select().from(media).where(eq(media.id, id)).limit(1);
   if (!row) throw errors.notFound('File');
 
-  await c.env.MEDIA.delete(row.key);
+  await c.get('storage').delete(row.key);
   await db.delete(media).where(eq(media.id, id));
   return c.body(null, 204);
 });
