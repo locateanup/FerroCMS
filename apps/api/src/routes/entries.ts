@@ -11,9 +11,23 @@ import type { AppBindings } from '../env.js';
 import { getCollection } from '../config/collections.js';
 import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
+import { dispatchWebhook, type WebhookEventType } from '../lib/webhooks.js';
+import type { Entry } from '@ferrocms/db';
 import * as svc from '../services/entries.js';
 
 const router = new Hono<AppBindings>();
+
+/** Fire a content webhook in the background. */
+function emitWebhook(c: Context<AppBindings>, entry: Entry, event: WebhookEventType): void {
+  dispatchWebhook(c.env, (p) => c.executionCtx.waitUntil(p), {
+    event,
+    collection: entry.collection,
+    id: entry.id,
+    slug: entry.slug,
+    status: entry.status,
+    timestamp: new Date().toISOString(),
+  });
+}
 
 const statusSchema = z.enum(ENTRY_STATUSES);
 const createBody = z.object({
@@ -108,6 +122,7 @@ router.post('/:collection', async (c) => {
       status: body.status ?? 'draft',
       user,
     });
+    emitWebhook(c, entry, entry.status === 'published' ? 'entry.published' : 'entry.created');
     return c.json(entry, 201);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
@@ -139,6 +154,8 @@ router.patch('/:collection/:id', async (c) => {
       status: body.status,
       user,
     });
+    const justPublished = existing.status !== 'published' && entry.status === 'published';
+    emitWebhook(c, entry, justPublished ? 'entry.published' : 'entry.updated');
     return c.json(entry);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
@@ -156,7 +173,48 @@ router.delete('/:collection/:id', async (c) => {
   if (!existing) throw errors.notFound('Entry');
 
   await svc.deleteEntry(c.get('db'), id);
+  emitWebhook(c, existing, 'entry.deleted');
   return c.body(null, 204);
+});
+
+// List an entry's revision history (newest first).
+router.get('/:collection/:id/revisions', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  enforce(c, resolveAccess(collection.access).update, id);
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+
+  const items = await svc.listRevisions(c.get('db'), id);
+  return c.json({ items });
+});
+
+// Restore an entry's data from a past revision.
+router.post('/:collection/:id/revisions/:revisionId/restore', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, resolveAccess(collection.access).update, id);
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+
+  const revision = await svc.getRevision(c.get('db'), c.req.param('revisionId'));
+  if (!revision || revision.entryId !== id) throw errors.notFound('Revision');
+
+  try {
+    const entry = await svc.updateEntry(c.get('db'), {
+      collection,
+      existing,
+      data: revision.data as Record<string, unknown>,
+      user,
+    });
+    emitWebhook(c, entry, 'entry.updated');
+    return c.json(entry);
+  } catch (err) {
+    if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
+    throw err;
+  }
 });
 
 export { router as entriesRouter };

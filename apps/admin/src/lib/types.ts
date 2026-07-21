@@ -33,6 +33,7 @@ export interface Field {
   options?: SelectOption[];
   many?: boolean;
   from?: string;
+  relationTo?: string;
   admin?: {
     placeholder?: string;
     hidden?: boolean;
@@ -77,5 +78,15 @@ export interface MediaItem {
   mimeType: string;
   size: number;
   alt: string | null;
+  createdAt: string;
+}
+
+export interface Revision {
+  id: string;
+  entryId: string;
+  collection: string;
+  status: EntryStatus;
+  data: Record<string, unknown>;
+  authorId: string | null;
   createdAt: string;
 }

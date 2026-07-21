@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api.js';
 import { useCollection } from '../lib/collections.js';
 import { FieldInput } from '../components/FieldInput.js';
+import { RevisionHistory } from '../components/RevisionHistory.js';
 import type { EntryStatus } from '../lib/types.js';
 
 export function EntryEditorPage() {
@@ -149,6 +150,18 @@ export function EntryEditorPage() {
           >
             Save draft
           </button>
+
+          {!isNew && id && (
+            <RevisionHistory
+              slug={slug}
+              id={id}
+              onRestored={(entry) => {
+                setData(entry.data);
+                setStatus(entry.status);
+                setDirty(false);
+              }}
+            />
+          )}
         </aside>
       </div>
     </>

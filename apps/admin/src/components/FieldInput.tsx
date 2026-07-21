@@ -1,4 +1,6 @@
 import type { Field } from '../lib/types.js';
+import { RelationInput } from './RelationInput.js';
+import { MediaInput } from './MediaInput.js';
 
 interface Props {
   field: Field;
@@ -99,8 +101,12 @@ export function FieldInput({ field, value, onChange }: Props) {
             }}
           />
         );
+      case 'relation':
+        return <RelationInput field={field} value={value} onChange={onChange} />;
+      case 'media':
+        return <MediaInput value={value} onChange={onChange} />;
       default:
-        // text, slug, relation, media (id-based for Phase 1)
+        // text, slug
         return (
           <input
             {...common}

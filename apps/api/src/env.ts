@@ -13,6 +13,10 @@ export interface Env {
   CORS_ORIGINS?: string;
   /** Public base URL of the front-end site, used for sitemap + canonical URLs. */
   SITE_URL?: string;
+  /** Comma-separated webhook URLs notified on content changes (revalidation). */
+  WEBHOOK_URLS?: string;
+  /** Optional secret used to HMAC-sign webhook payloads. */
+  WEBHOOK_SECRET?: string;
   /** R2 bucket for the media library. */
   MEDIA: R2Bucket;
   /** KV namespace for sessions and cache. */

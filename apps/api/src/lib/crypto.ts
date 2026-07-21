@@ -33,6 +33,21 @@ export function randomToken(bytes = 32): string {
   return toBase64Url(crypto.getRandomValues(new Uint8Array(bytes)));
 }
 
+/** HMAC-SHA256 hex signature of a message (used to sign webhook payloads). */
+export async function hmacSha256Hex(secret: string, message: string): Promise<string> {
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(secret),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign'],
+  );
+  const sig = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
+  return Array.from(new Uint8Array(sig))
+    .map((b) => b.toString(16).padStart(2, '0'))
+    .join('');
+}
+
 const PBKDF2_ITERATIONS = 100_000;
 
 async function deriveBits(password: string, salt: Uint8Array, iterations: number): Promise<string> {

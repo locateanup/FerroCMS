@@ -8,6 +8,17 @@
 
 import { atLeast, buildRegistry, defineCollection, type ResolvedCollection } from '@ferrocms/core';
 
+export const authors = defineCollection({
+  slug: 'authors',
+  drafts: false,
+  admin: { icon: 'user', useAsTitle: 'name' },
+  fields: [
+    { name: 'name', type: 'text', required: true, maxLength: 120 },
+    { name: 'bio', type: 'textarea', maxLength: 500 },
+    { name: 'avatar', type: 'media' },
+  ],
+});
+
 export const posts = defineCollection({
   slug: 'posts',
   seo: { urlPattern: '/blog/:slug' },
@@ -16,6 +27,8 @@ export const posts = defineCollection({
     { name: 'title', type: 'text', required: true, maxLength: 200 },
     { name: 'slug', type: 'slug', from: 'title', unique: true },
     { name: 'excerpt', type: 'textarea', maxLength: 300 },
+    { name: 'coverImage', type: 'media' },
+    { name: 'author', type: 'relation', relationTo: 'authors' },
     { name: 'body', type: 'richText' },
     {
       name: 'category',
@@ -47,7 +60,7 @@ export const pages = defineCollection({
   },
 });
 
-export const collections: ResolvedCollection[] = [posts, pages];
+export const collections: ResolvedCollection[] = [posts, pages, authors];
 
 export const registry = buildRegistry(collections);
 

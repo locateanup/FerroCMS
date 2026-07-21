@@ -208,3 +208,8 @@ export async function listRevisions(db: Db, entryId: string): Promise<Revision[]
     .orderBy(desc(revisions.createdAt))
     .limit(50);
 }
+
+export async function getRevision(db: Db, revisionId: string): Promise<Revision | null> {
+  const [row] = await db.select().from(revisions).where(eq(revisions.id, revisionId)).limit(1);
+  return row ?? null;
+}

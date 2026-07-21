@@ -65,19 +65,21 @@ Legend: ✅ implemented · 🚧 on the roadmap
 - ✅ Field types: text, textarea, number, boolean, date, select, JSON, slug, rich text, relation, media
 - ✅ Draft / published / scheduled / archived states
 - ✅ Automatic slug generation
-- ✅ Revision history snapshots on every change
-- 🚧 Block-based rich-text editor, relations UI, taxonomies, i18n
+- ✅ Revision history with one-click restore
+- 🚧 Block-based rich-text editor, taxonomies, i18n
 
 ### Delivery
 
 - ✅ Auto-generated REST API per collection
 - ✅ Typed client SDK (`@ferrocms/sdk`) for any JS front-end
 - ✅ Public read / draft-protected access rules
-- 🚧 GraphQL API, webhooks, on-publish revalidation, edge caching
+- ✅ Webhooks on content changes (HMAC-signed) — on-publish revalidation for your site
+- 🚧 GraphQL API, edge caching
 
 ### Admin
 
 - ✅ Clean React admin dashboard (login, collection lists, generated editor, media library)
+- ✅ Relation & media field pickers
 - ✅ First-run admin setup
 - 🚧 Live preview, drag-and-drop page builder, real-time collaboration
 

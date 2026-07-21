@@ -1,4 +1,12 @@
-import type { CollectionSchema, Entry, EntryStatus, ListResult, MediaItem, User } from './types.js';
+import type {
+  CollectionSchema,
+  Entry,
+  EntryStatus,
+  ListResult,
+  MediaItem,
+  Revision,
+  User,
+} from './types.js';
 
 const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8787';
 
@@ -81,4 +89,9 @@ export const api = {
   },
   deleteMedia: (id: string) => req<void>(`/api/media/${id}`, { method: 'DELETE' }),
   mediaUrl: (key: string) => `${BASE}/api/media/file/${key}`,
+
+  listRevisions: (slug: string, id: string) =>
+    req<{ items: Revision[] }>(`/api/${slug}/${id}/revisions`),
+  restoreRevision: (slug: string, id: string, revisionId: string) =>
+    req<Entry>(`/api/${slug}/${id}/revisions/${revisionId}/restore`, { method: 'POST' }),
 };
