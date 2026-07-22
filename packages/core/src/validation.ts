@@ -49,6 +49,12 @@ function fieldSchema(field: Field): z.ZodTypeAny {
       const ref = z.string();
       return field.many ? z.array(ref) : ref;
     }
+    case 'taxonomy': {
+      // Taxonomies default to multi-assign (tags/categories usually allow more
+      // than one term) unless explicitly set to `many: false`.
+      const ref = z.string();
+      return field.many === false ? ref : z.array(ref);
+    }
   }
 }
 

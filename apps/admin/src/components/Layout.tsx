@@ -16,6 +16,9 @@ export function Layout({ children }: { children: ReactNode }) {
   const { collections } = useCollections();
   const navigate = useNavigate();
 
+  const content = collections.filter((c) => !c.taxonomyConfig.enabled);
+  const taxonomies = collections.filter((c) => c.taxonomyConfig.enabled);
+
   return (
     <div className="layout">
       <aside className="sidebar">
@@ -25,7 +28,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
 
         <div className="section-label">Content</div>
-        {collections.map((c) => (
+        {content.map((c) => (
           <NavLink
             key={c.slug}
             to={`/collections/${c.slug}`}
@@ -37,6 +40,21 @@ export function Layout({ children }: { children: ReactNode }) {
         <NavLink to="/media" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
           <span>Media</span>
         </NavLink>
+
+        {taxonomies.length > 0 && (
+          <>
+            <div className="section-label">Taxonomies</div>
+            {taxonomies.map((c) => (
+              <NavLink
+                key={c.slug}
+                to={`/collections/${c.slug}`}
+                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              >
+                <span>{c.labels.plural}</span>
+              </NavLink>
+            ))}
+          </>
+        )}
 
         <div className="spacer" />
         <div className="user-chip">

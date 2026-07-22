@@ -6,7 +6,13 @@
  * phase this moves to a user-editable config file.
  */
 
-import { atLeast, buildRegistry, defineCollection, type ResolvedCollection } from '@ferrocms/core';
+import {
+  atLeast,
+  buildRegistry,
+  defineCollection,
+  defineTaxonomy,
+  type ResolvedCollection,
+} from '@ferrocms/core';
 
 export const authors = defineCollection({
   slug: 'authors',
@@ -19,6 +25,12 @@ export const authors = defineCollection({
   ],
 });
 
+// Hierarchical taxonomy — categories can nest (e.g. Engineering > Backend).
+export const categories = defineTaxonomy({ slug: 'categories' });
+
+// Flat taxonomy — tags don't nest.
+export const tags = defineTaxonomy({ slug: 'tags', hierarchical: false });
+
 export const posts = defineCollection({
   slug: 'posts',
   seo: { urlPattern: '/blog/:slug' },
@@ -30,15 +42,8 @@ export const posts = defineCollection({
     { name: 'coverImage', type: 'media' },
     { name: 'author', type: 'relation', relationTo: 'authors' },
     { name: 'body', type: 'richText' },
-    {
-      name: 'category',
-      type: 'select',
-      options: [
-        { label: 'Engineering', value: 'engineering' },
-        { label: 'Product', value: 'product' },
-        { label: 'Company', value: 'company' },
-      ],
-    },
+    { name: 'categories', type: 'taxonomy', taxonomy: 'categories' },
+    { name: 'tags', type: 'taxonomy', taxonomy: 'tags' },
     { name: 'featured', type: 'boolean', defaultValue: false },
   ],
 });
@@ -60,7 +65,7 @@ export const pages = defineCollection({
   },
 });
 
-export const collections: ResolvedCollection[] = [posts, pages, authors];
+export const collections: ResolvedCollection[] = [posts, pages, authors, categories, tags];
 
 export const registry = buildRegistry(collections);
 

@@ -6,3 +6,4 @@ export * from './hooks.js';
 export * from './slug.js';
 export * from './seo.js';
 export * from './richtext.js';
+export * from './taxonomy.js';

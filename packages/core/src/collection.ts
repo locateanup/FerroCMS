@@ -24,6 +24,9 @@ export interface CollectionAdminOptions {
 /** SEO options for a collection. `true` uses defaults. */
 export type CollectionSeo = boolean | { urlPattern?: string };
 
+/** Taxonomy options for a collection. `true` uses defaults (hierarchical). */
+export type CollectionTaxonomy = boolean | { hierarchical?: boolean };
+
 export interface CollectionConfig {
   /** URL + table key, e.g. 'posts'. Lowercase, kebab/snake, unique. */
   slug: string;
@@ -39,6 +42,13 @@ export interface CollectionConfig {
    * built (default `/:slug`; supports `:collection` and `:slug` tokens).
    */
   seo?: CollectionSeo;
+  /**
+   * Mark this collection as a taxonomy (a term list other collections assign
+   * via `taxonomy` fields — e.g. categories, tags). When hierarchical
+   * (default), a self-referencing `parent` field is auto-injected unless
+   * already declared. Prefer `defineTaxonomy()` over setting this directly.
+   */
+  taxonomy?: CollectionTaxonomy;
   access?: CollectionAccess;
   hooks?: CollectionHooks;
   admin?: CollectionAdminOptions;
@@ -51,6 +61,7 @@ export interface ResolvedCollection extends CollectionConfig {
   labels: { singular: string; plural: string };
   admin: CollectionAdminOptions & { useAsTitle: string };
   seoConfig: { enabled: boolean; urlPattern: string };
+  taxonomyConfig: { enabled: boolean; hierarchical: boolean };
 }
 
 const SLUG_RE = /^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$/;
@@ -77,9 +88,22 @@ export function defineCollection(config: CollectionConfig): ResolvedCollection {
   const seoEnabled = config.seo === true || (typeof config.seo === 'object' && config.seo !== null);
   const urlPattern = (typeof config.seo === 'object' && config.seo?.urlPattern) || '/:slug';
   const declaredNames = new Set(config.fields.map((f) => f.name));
-  const fields: Field[] = seoEnabled
+  let fields: Field[] = seoEnabled
     ? [...config.fields, ...seoFields.filter((f) => !declaredNames.has(f.name))]
     : config.fields;
+
+  // Resolve taxonomy: hierarchical taxonomies get a self-referencing `parent`
+  // field unless the user already declared one.
+  const taxonomyEnabled =
+    config.taxonomy === true || (typeof config.taxonomy === 'object' && config.taxonomy !== null);
+  const hierarchical =
+    (typeof config.taxonomy === 'object' && config.taxonomy?.hierarchical) ?? true;
+  if (taxonomyEnabled && hierarchical && !declaredNames.has('parent')) {
+    fields = [
+      ...fields,
+      { name: 'parent', type: 'relation', relationTo: config.slug, label: 'Parent' },
+    ];
+  }
 
   const seen = new Set<string>();
   for (const field of fields) {
@@ -98,6 +122,11 @@ export function defineCollection(config: CollectionConfig): ResolvedCollection {
     if (field.type === 'relation' && !field.relationTo) {
       throw new Error(
         `Collection "${config.slug}" relation field "${field.name}" is missing "relationTo".`,
+      );
+    }
+    if (field.type === 'taxonomy' && !field.taxonomy) {
+      throw new Error(
+        `Collection "${config.slug}" taxonomy field "${field.name}" is missing "taxonomy".`,
       );
     }
   }
@@ -122,6 +151,7 @@ export function defineCollection(config: CollectionConfig): ResolvedCollection {
     labels: { singular, plural },
     admin: { ...config.admin, useAsTitle },
     seoConfig: { enabled: seoEnabled, urlPattern },
+    taxonomyConfig: { enabled: taxonomyEnabled, hierarchical },
   };
 }
 

@@ -71,7 +71,9 @@ Legend: ✅ implemented · 🚧 planned
 - ✅ Draft / published / scheduled / archived states
 - ✅ Automatic slug generation
 - ✅ Revision history with one-click restore
-- 🚧 Taxonomies, i18n
+- ✅ Taxonomies (`defineTaxonomy()`) — hierarchical or flat term lists (categories, tags) assigned via
+  a `taxonomy` field, with a hierarchy-aware picker in the admin
+- 🚧 i18n
 
 ### Delivery
 

@@ -116,6 +116,14 @@ export interface MediaField extends BaseField {
   many?: boolean;
 }
 
+export interface TaxonomyField extends BaseField {
+  type: 'taxonomy';
+  /** Slug of the taxonomy collection (created with `defineTaxonomy`) this field assigns terms from. */
+  taxonomy: string;
+  /** Allow assigning multiple terms. Default true (most taxonomies are multi-assign, e.g. tags). */
+  many?: boolean;
+}
+
 export type Field =
   | TextField
   | SlugField
@@ -126,7 +134,8 @@ export type Field =
   | JsonField
   | RichTextField
   | RelationField
-  | MediaField;
+  | MediaField
+  | TaxonomyField;
 
 /** Derive a default human label from a field/collection machine name. */
 export function humanize(name: string): string {

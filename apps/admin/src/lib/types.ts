@@ -26,7 +26,8 @@ export interface Field {
     | 'json'
     | 'richText'
     | 'relation'
-    | 'media';
+    | 'media'
+    | 'taxonomy';
   label?: string;
   required?: boolean;
   description?: string;
@@ -34,6 +35,7 @@ export interface Field {
   many?: boolean;
   from?: string;
   relationTo?: string;
+  taxonomy?: string;
   admin?: {
     placeholder?: string;
     hidden?: boolean;
@@ -50,6 +52,7 @@ export interface CollectionSchema {
   admin: { useAsTitle: string; icon?: string; defaultColumns?: string[] };
   drafts: boolean;
   timestamps: boolean;
+  taxonomyConfig: { enabled: boolean; hierarchical: boolean };
 }
 
 export interface Entry {

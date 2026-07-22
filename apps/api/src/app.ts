@@ -70,6 +70,7 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
       admin: col.admin,
       drafts: col.drafts,
       timestamps: col.timestamps,
+      taxonomyConfig: col.taxonomyConfig,
     }));
     return c.json({ items: schemas });
   });
