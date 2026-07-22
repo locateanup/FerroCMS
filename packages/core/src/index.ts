@@ -5,3 +5,4 @@ export * from './access.js';
 export * from './hooks.js';
 export * from './slug.js';
 export * from './seo.js';
+export * from './richtext.js';

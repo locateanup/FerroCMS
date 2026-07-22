@@ -5,6 +5,7 @@
 
 import { z } from 'zod';
 import type { Field } from './fields.js';
+import { richTextValueSchema } from './richtext.js';
 
 function fieldSchema(field: Field): z.ZodTypeAny {
   switch (field.type) {
@@ -38,8 +39,8 @@ function fieldSchema(field: Field): z.ZodTypeAny {
     case 'json':
       return z.unknown();
     case 'richText':
-      // Lexical/TipTap editor state is stored as JSON.
-      return z.unknown();
+      // A structured block array — never raw HTML. See richtext.ts.
+      return richTextValueSchema;
     case 'relation': {
       const ref = z.string();
       return field.many ? z.array(ref) : ref;

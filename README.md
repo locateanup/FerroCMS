@@ -66,10 +66,12 @@ Legend: ✅ implemented · 🚧 planned
 
 - ✅ Custom content types / collections (like WordPress custom post types)
 - ✅ Field types: text, textarea, number, boolean, date, select, JSON, slug, rich text, relation, media
+- ✅ Block-based rich-text editor (paragraphs, headings, lists, quotes, code, images) — structured
+  JSON, not raw HTML, so content can't inject arbitrary markup
 - ✅ Draft / published / scheduled / archived states
 - ✅ Automatic slug generation
 - ✅ Revision history with one-click restore
-- 🚧 Block-based rich-text editor, taxonomies, i18n
+- 🚧 Taxonomies, i18n
 
 ### Delivery
 
@@ -227,6 +229,15 @@ const { items } = await client.find('posts', { limit: 10 });
 const post = await client.findBySlug('posts', 'hello-world');
 const meta = buildMeta(post, { siteUrl: 'https://mysite.com', urlPattern: '/blog/:slug' });
 const tags = metaTags(meta); // -> [{ tag: 'title', text }, { tag: 'meta', attrs }, ...]
+```
+
+Rich text (`body` above) is a structured block array, not HTML — render it safely with:
+
+```ts
+import { renderRichTextHtml } from '@ferrocms/sdk';
+
+const html = renderRichTextHtml(post.data.body, { mediaUrl: client.mediaUrl });
+// -> '<p>Hello <strong>world</strong></p>...' — safe to insert as HTML
 ```
 
 ## FAQ

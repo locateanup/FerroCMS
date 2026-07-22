@@ -70,6 +70,7 @@ export interface FerroCmsClient {
 }
 
 export * from './seo.js';
+export * from './richtext.js';
 
 export function createClient(options: ClientOptions): FerroCmsClient {
   const base = options.url.replace(/\/+$/, '');

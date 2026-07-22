@@ -1,6 +1,7 @@
 import type { Field } from '../lib/types.js';
 import { RelationInput } from './RelationInput.js';
 import { MediaInput } from './MediaInput.js';
+import { BlockEditor } from './BlockEditor.js';
 
 interface Props {
   field: Field;
@@ -31,15 +32,16 @@ export function FieldInput({ field, value, onChange }: Props) {
   function renderControl() {
     switch (field.type) {
       case 'textarea':
-      case 'richText':
         return (
           <textarea
             {...common}
-            rows={field.type === 'richText' ? 8 : 3}
+            rows={3}
             value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value)}
           />
         );
+      case 'richText':
+        return <BlockEditor value={value} onChange={onChange} />;
       case 'number':
         return (
           <input
