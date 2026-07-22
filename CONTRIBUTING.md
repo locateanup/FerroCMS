@@ -8,7 +8,8 @@ ideas, and bug reports are all valuable.
 1. Install [Node.js](https://nodejs.org) 20+ and [pnpm](https://pnpm.io) 10+.
 2. Fork and clone the repo.
 3. `pnpm install`
-4. Copy `.env.example` to `.dev.vars` and add a Neon `DATABASE_URL` and an `AUTH_SECRET`.
+4. Copy `.env.example` to `.dev.vars` and add a Turso `DATABASE_URL`/`DATABASE_AUTH_TOKEN` (or a local
+   `turso dev` URL) and an `AUTH_SECRET`.
 5. `pnpm --filter @ferrocms/db db:push` to create the schema.
 6. `pnpm dev` to start the API worker and admin SPA.
 

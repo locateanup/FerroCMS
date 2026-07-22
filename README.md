@@ -265,7 +265,7 @@ Contributions are welcome — see [CONTRIBUTING.md](./CONTRIBUTING.md). Please a
 
 **Keywords:** headless CMS · open source CMS · Cloudflare Workers CMS · Next.js CMS · Vue CMS ·
 TypeScript CMS · serverless CMS · edge CMS · WordPress alternative · Keystatic alternative ·
-Payload / Strapi / Directus alternative · Drizzle · Hono · R2 · Neon Postgres
+Payload / Strapi / Directus alternative · Drizzle · Hono · R2 · Turso · libSQL
 
 If FerroCMS looks useful, please ⭐ the repo — it genuinely helps others discover it.
 

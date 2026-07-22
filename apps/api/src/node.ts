@@ -1,7 +1,8 @@
 /**
  * Node entry point — run FerroCMS anywhere (Docker, a VPS, Render, Fly, bare
- * metal). Uses filesystem storage and Postgres-backed KV instead of Cloudflare
- * R2 / Workers KV. Start with `pnpm --filter @ferrocms/api start:node`.
+ * metal). Uses filesystem storage instead of Cloudflare R2; sessions/cache
+ * live in the same libSQL database. Start with
+ * `pnpm --filter @ferrocms/api start:node`.
  */
 
 import { serve } from '@hono/node-server';
