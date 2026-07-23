@@ -104,6 +104,8 @@ export interface CreateInput {
   collection: ResolvedCollection;
   data: Data;
   status: EntryStatus;
+  /** Only persisted when `status` is `'scheduled'`. */
+  scheduledAt?: Date | null;
   user: AuthUser | null;
 }
 
@@ -119,6 +121,7 @@ export async function createEntry(db: Db, input: CreateInput): Promise<Entry> {
 
   const slug = resolveSlug(collection, data);
   const publishedAt = status === 'published' ? new Date() : null;
+  const scheduledAt = status === 'scheduled' ? (input.scheduledAt ?? null) : null;
 
   const [row] = await db
     .insert(entries)
@@ -129,6 +132,7 @@ export async function createEntry(db: Db, input: CreateInput): Promise<Entry> {
       data,
       authorId: user?.id ?? null,
       publishedAt,
+      scheduledAt,
     })
     .returning();
 
@@ -147,6 +151,8 @@ export interface UpdateInput {
   existing: Entry;
   data?: Data;
   status?: EntryStatus;
+  /** `undefined` = leave as-is, `null` = clear. Ignored unless the resulting status is `'scheduled'`. */
+  scheduledAt?: Date | null;
   user: AuthUser | null;
 }
 
@@ -167,10 +173,16 @@ export async function updateEntry(db: Db, input: UpdateInput): Promise<Entry> {
     nextStatus === 'published' && existing.status !== 'published'
       ? new Date()
       : existing.publishedAt;
+  const scheduledAt =
+    nextStatus !== 'scheduled'
+      ? null
+      : input.scheduledAt !== undefined
+        ? input.scheduledAt
+        : existing.scheduledAt;
 
   const [row] = await db
     .update(entries)
-    .set({ data, slug, status: nextStatus, publishedAt, updatedAt: new Date() })
+    .set({ data, slug, status: nextStatus, publishedAt, scheduledAt, updatedAt: new Date() })
     .where(eq(entries.id, existing.id))
     .returning();
 

@@ -11,6 +11,7 @@ import { authRouter } from './routes/auth.js';
 import { entriesRouter } from './routes/entries.js';
 import { mediaRouter } from './routes/media.js';
 import { usersRouter } from './routes/users.js';
+import { systemRouter } from './routes/system.js';
 import { robotsHandler, sitemapHandler } from './routes/seo.js';
 import { collections } from './config/collections.js';
 import { yoga } from './graphql/index.js';
@@ -104,6 +105,7 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
   app.route('/api/auth', authRouter);
   app.route('/api/media', mediaRouter);
   app.route('/api/users', usersRouter);
+  app.route('/api/system', systemRouter);
   app.route('/api', entriesRouter);
 
   return app;

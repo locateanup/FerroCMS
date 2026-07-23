@@ -6,6 +6,13 @@ import { FieldInput } from '../components/FieldInput.js';
 import { RevisionHistory } from '../components/RevisionHistory.js';
 import type { EntryStatus } from '../lib/types.js';
 
+/** ISO string -> the local-time value a `datetime-local` input expects. */
+function toLocalInputValue(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function EntryEditorPage() {
   const { slug, id } = useParams<{ slug: string; id?: string }>();
   const collection = useCollection(slug);
@@ -14,6 +21,10 @@ export function EntryEditorPage() {
   const isNew = !id || id === 'new';
   const [data, setData] = useState<Record<string, unknown>>({});
   const [status, setStatus] = useState<EntryStatus>('draft');
+  const [scheduledAt, setScheduledAt] = useState<string | null>(null);
+  // The datetime-local input's own draft value, kept separate from the saved
+  // `scheduledAt` so picking a date doesn't schedule anything until you click.
+  const [scheduleInput, setScheduleInput] = useState('');
   const [loading, setLoading] = useState(!isNew);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -33,6 +44,8 @@ export function EntryEditorPage() {
       .then((entry) => {
         setData(entry.data);
         setStatus(entry.status);
+        setScheduledAt(entry.scheduledAt);
+        if (entry.scheduledAt) setScheduleInput(toLocalInputValue(entry.scheduledAt));
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load.'))
       .finally(() => setLoading(false));
@@ -45,16 +58,17 @@ export function EntryEditorPage() {
     setDirty(true);
   }
 
-  async function save(nextStatus: EntryStatus) {
+  async function save(nextStatus: EntryStatus, nextScheduledAt?: string | null) {
     setSaving(true);
     setError(null);
     try {
       if (isNew) {
-        const created = await api.createEntry(slug!, data, nextStatus);
+        const created = await api.createEntry(slug!, data, nextStatus, nextScheduledAt);
         navigate(`/collections/${slug}/${created.id}`, { replace: true });
       } else {
-        await api.updateEntry(slug!, id!, data, nextStatus);
+        await api.updateEntry(slug!, id!, data, nextStatus, nextScheduledAt);
         setStatus(nextStatus);
+        setScheduledAt(nextScheduledAt ?? null);
       }
       setDirty(false);
     } catch (err) {
@@ -67,6 +81,11 @@ export function EntryEditorPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function schedule() {
+    if (!scheduleInput) return;
+    save('scheduled', new Date(scheduleInput).toISOString());
   }
 
   async function remove() {
@@ -176,6 +195,11 @@ export function EntryEditorPage() {
           <label>Status</label>
           <div style={{ marginBottom: 12 }}>
             <span className={`badge badge-${status}`}>{status}</span>
+            {status === 'scheduled' && scheduledAt && (
+              <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>
+                for {new Date(scheduledAt).toLocaleString()}
+              </span>
+            )}
             {dirty && (
               <span className="muted" style={{ marginLeft: 8, fontSize: 12 }}>
                 unsaved
@@ -192,11 +216,28 @@ export function EntryEditorPage() {
           </button>
           <button
             className="btn"
-            style={{ width: '100%', justifyContent: 'center' }}
+            style={{ width: '100%', justifyContent: 'center', marginBottom: 12 }}
             disabled={saving}
             onClick={() => save('draft')}
           >
             Save draft
+          </button>
+
+          <label htmlFor="schedule-at">Schedule for later</label>
+          <input
+            id="schedule-at"
+            type="datetime-local"
+            value={scheduleInput}
+            onChange={(e) => setScheduleInput(e.target.value)}
+            style={{ marginBottom: 8 }}
+          />
+          <button
+            className="btn"
+            style={{ width: '100%', justifyContent: 'center' }}
+            disabled={saving || !scheduleInput}
+            onClick={schedule}
+          >
+            Schedule
           </button>
 
           {!isNew && id && (

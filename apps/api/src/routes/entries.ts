@@ -44,14 +44,38 @@ function emitWebhook(c: Context<AppBindings>, entry: Entry, event: WebhookEventT
 }
 
 const statusSchema = z.enum(ENTRY_STATUSES);
+const scheduledAtSchema = z.coerce.date().nullable().optional();
 const createBody = z.object({
   data: z.record(z.unknown()).default({}),
   status: statusSchema.optional(),
+  scheduledAt: scheduledAtSchema,
 });
 const updateBody = z.object({
   data: z.record(z.unknown()).optional(),
   status: statusSchema.optional(),
+  scheduledAt: scheduledAtSchema,
 });
+
+/**
+ * A `'scheduled'` entry always needs a future `scheduledAt` — resolve it from
+ * the request (falling back to what's already stored, on update) and enforce
+ * that. Any other status clears it (the publish sweep only looks at
+ * `'scheduled'` rows, so a stale date left on a published/draft entry would be
+ * meaningless — and confusing if the entry is rescheduled without a new date).
+ */
+function resolveScheduledAt(
+  status: EntryStatus | undefined,
+  provided: Date | null | undefined,
+  existing: Date | null | undefined,
+): Date | null {
+  if (status !== 'scheduled') return null;
+  const value = provided !== undefined ? provided : (existing ?? null);
+  if (!value) throw errors.badRequest('A scheduled entry requires "scheduledAt".');
+  if (value.getTime() <= Date.now()) {
+    throw errors.badRequest('"scheduledAt" must be in the future.');
+  }
+  return value;
+}
 
 function requireCollection(slug: string): ResolvedCollection {
   const collection = getCollection(slug);
@@ -193,11 +217,15 @@ router.post('/:collection', async (c) => {
   const validation = validateEntry(collection.fields, writable, { locales: collection.locales });
   if (!validation.success) throw errors.validation(validation.errors);
 
+  const status = body.status ?? 'draft';
+  const scheduledAt = resolveScheduledAt(status, body.scheduledAt, undefined);
+
   try {
     const entry = await svc.createEntry(c.get('db'), {
       collection,
       data: validation.data!,
-      status: body.status ?? 'draft',
+      status,
+      scheduledAt,
       user,
     });
     emitWebhook(c, entry, entry.status === 'published' ? 'entry.published' : 'entry.created');
@@ -228,12 +256,19 @@ router.patch('/:collection/:id', async (c) => {
     body.data = validation.data;
   }
 
+  const scheduledAt = resolveScheduledAt(
+    body.status ?? existing.status,
+    body.scheduledAt,
+    existing.scheduledAt,
+  );
+
   try {
     const entry = await svc.updateEntry(c.get('db'), {
       collection,
       existing,
       data: body.data,
       status: body.status,
+      scheduledAt,
       user,
     });
     const justPublished = existing.status !== 'published' && entry.status === 'published';

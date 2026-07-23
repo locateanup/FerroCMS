@@ -10,6 +10,7 @@ import { createDb } from '@ferrocms/db';
 import { createApp } from './app.js';
 import { configFromProcessEnv, fsStorage, memoryCache } from './platform/node.js';
 import { sqlKV } from './platform/kv.js';
+import { runScheduledPublish } from './services/scheduling.js';
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL is required.');
@@ -27,3 +28,12 @@ const port = Number(process.env.PORT ?? 8787);
 serve({ fetch: app.fetch, port }, (info) => {
   console.log(`FerroCMS API (Node) listening on http://localhost:${info.port}`);
 });
+
+// No external cron on a bare Node host — poll for due scheduled entries
+// in-process instead. (On Cloudflare this is a Cron Trigger; see index.ts.)
+const SCHEDULE_SWEEP_INTERVAL_MS = 60_000;
+setInterval(() => {
+  runScheduledPublish(db, config).catch((err) => {
+    console.error('Scheduled-publish sweep failed:', err);
+  });
+}, SCHEDULE_SWEEP_INTERVAL_MS);

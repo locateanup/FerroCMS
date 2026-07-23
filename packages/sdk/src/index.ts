@@ -14,6 +14,7 @@ export interface FerroCmsEntry<T = Record<string, unknown>> {
   data: T;
   authorId: string | null;
   publishedAt: string | null;
+  scheduledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

@@ -82,6 +82,7 @@ export interface Entry {
   data: Record<string, unknown>;
   authorId: string | null;
   publishedAt: string | null;
+  scheduledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

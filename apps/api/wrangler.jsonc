@@ -7,6 +7,13 @@
   "observability": {
     "enabled": true
   },
+  // Sweeps for due `'scheduled'` entries and publishes them (see the
+  // `scheduled()` handler in src/index.ts). Every 5 minutes is a reasonable
+  // default publish-time precision for a CMS; tighten if you need closer to
+  // real-time scheduling.
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  },
   // R2 bucket for the media library. Create with:
   //   wrangler r2 bucket create ferrocms-media
   "r2_buckets": [

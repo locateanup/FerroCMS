@@ -98,10 +98,27 @@ export const api = {
     return req<ListResult>(`/api/${slug}${qs ? `?${qs}` : ''}`);
   },
   getEntry: (slug: string, id: string) => req<Entry>(`/api/${slug}/${id}`),
-  createEntry: (slug: string, data: Record<string, unknown>, status: EntryStatus) =>
-    req<Entry>(`/api/${slug}`, { method: 'POST', body: JSON.stringify({ data, status }) }),
-  updateEntry: (slug: string, id: string, data: Record<string, unknown>, status: EntryStatus) =>
-    req<Entry>(`/api/${slug}/${id}`, { method: 'PATCH', body: JSON.stringify({ data, status }) }),
+  createEntry: (
+    slug: string,
+    data: Record<string, unknown>,
+    status: EntryStatus,
+    scheduledAt?: string | null,
+  ) =>
+    req<Entry>(`/api/${slug}`, {
+      method: 'POST',
+      body: JSON.stringify({ data, status, scheduledAt }),
+    }),
+  updateEntry: (
+    slug: string,
+    id: string,
+    data: Record<string, unknown>,
+    status: EntryStatus,
+    scheduledAt?: string | null,
+  ) =>
+    req<Entry>(`/api/${slug}/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data, status, scheduledAt }),
+    }),
   deleteEntry: (slug: string, id: string) => req<void>(`/api/${slug}/${id}`, { method: 'DELETE' }),
 
   listMedia: (folder?: string) =>
