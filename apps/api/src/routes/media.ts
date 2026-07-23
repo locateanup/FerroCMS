@@ -7,6 +7,7 @@ import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
 import { randomToken } from '../lib/crypto.js';
 import { detectImageDimensions } from '../lib/imageMeta.js';
+import { logAudit } from '../services/audit.js';
 
 const router = new Hono<AppBindings>();
 
@@ -99,6 +100,13 @@ router.post('/', async (c) => {
       uploadedById: user?.id ?? null,
     })
     .returning();
+  await logAudit(c.get('db'), {
+    userId: user?.id ?? null,
+    action: 'media.upload',
+    collection: 'media',
+    entryId: row!.id,
+    details: { filename: row!.filename, mimeType: row!.mimeType },
+  });
   return c.json(row, 201);
 });
 
@@ -135,7 +143,7 @@ router.get('/file/:key{.+}', async (c) => {
 
 // Delete a media item from R2 and the database.
 router.delete('/:id', async (c) => {
-  enforce(c, atLeast('editor'));
+  const user = enforce(c, atLeast('editor'));
   const id = c.req.param('id');
   const db = c.get('db');
   const [row] = await db.select().from(media).where(eq(media.id, id)).limit(1);
@@ -143,6 +151,13 @@ router.delete('/:id', async (c) => {
 
   await c.get('storage').delete(row.key);
   await db.delete(media).where(eq(media.id, id));
+  await logAudit(db, {
+    userId: user?.id ?? null,
+    action: 'media.delete',
+    collection: 'media',
+    entryId: row.id,
+    details: { filename: row.filename },
+  });
   return c.body(null, 204);
 });
 

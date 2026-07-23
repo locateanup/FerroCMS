@@ -9,6 +9,7 @@ import {
   type ResolvedCollection,
 } from '@ferrocms/core';
 import type { AuthUser } from '../env.js';
+import { logAudit } from './audit.js';
 
 type Data = Record<string, unknown>;
 
@@ -143,6 +144,13 @@ export async function createEntry(db: Db, input: CreateInput): Promise<Entry> {
     doc: created,
     user: accessUser(user),
   });
+  await logAudit(db, {
+    userId: user?.id ?? null,
+    action: 'entry.create',
+    collection: created.collection,
+    entryId: created.id,
+    details: { status: created.status },
+  });
   return created;
 }
 
@@ -194,11 +202,24 @@ export async function updateEntry(db: Db, input: UpdateInput): Promise<Entry> {
     previous: existing,
     user: accessUser(user),
   });
+  await logAudit(db, {
+    userId: user?.id ?? null,
+    action: 'entry.update',
+    collection: updated.collection,
+    entryId: updated.id,
+    details: { status: updated.status, previousStatus: existing.status },
+  });
   return updated;
 }
 
-export async function deleteEntry(db: Db, id: string): Promise<void> {
-  await db.delete(entries).where(eq(entries.id, id));
+export async function deleteEntry(db: Db, entry: Entry, user: AuthUser | null): Promise<void> {
+  await db.delete(entries).where(eq(entries.id, entry.id));
+  await logAudit(db, {
+    userId: user?.id ?? null,
+    action: 'entry.delete',
+    collection: entry.collection,
+    entryId: entry.id,
+  });
 }
 
 /** Write an immutable snapshot into the revisions table. */

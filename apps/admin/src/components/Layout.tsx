@@ -62,6 +62,14 @@ export function Layout({ children }: { children: ReactNode }) {
             <span>Users</span>
           </NavLink>
         )}
+        {user?.role === 'admin' && (
+          <NavLink
+            to="/audit-log"
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
+            <span>Audit log</span>
+          </NavLink>
+        )}
         <NavLink
           to="/security"
           className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}

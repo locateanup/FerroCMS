@@ -8,6 +8,7 @@ import { EntryEditorPage } from './pages/EntryEditorPage.js';
 import { MediaPage } from './pages/MediaPage.js';
 import { SecurityPage } from './pages/SecurityPage.js';
 import { UsersPage } from './pages/UsersPage.js';
+import { AuditLogPage } from './pages/AuditLogPage.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -34,6 +35,7 @@ export function App() {
         <Route path="/media" element={<MediaPage />} />
         <Route path="/security" element={<SecurityPage />} />
         {user.role === 'admin' && <Route path="/users" element={<UsersPage />} />}
+        {user.role === 'admin' && <Route path="/audit-log" element={<AuditLogPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

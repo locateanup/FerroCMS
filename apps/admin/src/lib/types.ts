@@ -24,6 +24,16 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export interface AuditLogEntry {
+  id: string;
+  userId: string | null;
+  action: string;
+  collection: string | null;
+  entryId: string | null;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export interface SelectOption {
   label: string;
   value: string;

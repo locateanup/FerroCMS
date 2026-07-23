@@ -1,5 +1,6 @@
 import type {
   AdminUser,
+  AuditLogEntry,
   CollectionSchema,
   Entry,
   EntryStatus,
@@ -148,4 +149,12 @@ export const api = {
     }),
   updateUser: (id: string, patch: { name?: string; role?: Role; active?: boolean }) =>
     req<AdminUser>(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  listAuditLog: (params: { limit?: number; offset?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.limit) q.set('limit', String(params.limit));
+    if (params.offset) q.set('offset', String(params.offset));
+    const qs = q.toString();
+    return req<{ items: AuditLogEntry[] }>(`/api/audit-log${qs ? `?${qs}` : ''}`);
+  },
 };

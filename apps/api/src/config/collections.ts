@@ -14,7 +14,6 @@ import {
   defineTaxonomy,
   type ResolvedCollection,
 } from '@ferrocms/core';
-import { auditLogPlugin } from '../plugins/auditLog.js';
 
 export const authors = defineCollection({
   slug: 'authors',
@@ -78,11 +77,10 @@ export const pages = defineCollection({
   },
 });
 
-// Plugins can contribute collections and/or merge hooks into existing ones —
-// see plugins/auditLog.ts for a minimal example.
+// Plugins can contribute collections and/or merge hooks into existing ones.
 export const collections: ResolvedCollection[] = applyPlugins(
   [posts, pages, authors, categories, tags],
-  [auditLogPlugin],
+  [],
 );
 
 export const registry = buildRegistry(collections);

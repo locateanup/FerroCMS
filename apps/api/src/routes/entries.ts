@@ -284,12 +284,12 @@ router.patch('/:collection/:id', async (c) => {
 router.delete('/:collection/:id', async (c) => {
   const collection = requireCollection(c.req.param('collection'));
   const id = c.req.param('id');
-  enforce(c, resolveAccess(collection.access).delete, id);
+  const user = enforce(c, resolveAccess(collection.access).delete, id);
 
   const existing = await svc.getEntry(c.get('db'), collection.slug, id);
   if (!existing) throw errors.notFound('Entry');
 
-  await svc.deleteEntry(c.get('db'), id);
+  await svc.deleteEntry(c.get('db'), existing, user);
   emitWebhook(c, existing, 'entry.deleted');
   return c.body(null, 204);
 });

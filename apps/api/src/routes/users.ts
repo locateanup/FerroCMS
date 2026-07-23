@@ -8,6 +8,7 @@ import type { AppBindings } from '../env.js';
 import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
 import { hashPassword } from '../lib/crypto.js';
+import { logAudit } from '../services/audit.js';
 
 const router = new Hono<AppBindings>();
 
@@ -78,7 +79,7 @@ router.get('/', async (c) => {
 // Create ("invite") a user — admin sets email/password/role directly.
 // No email-sending integration required; share the password out of band.
 router.post('/', async (c) => {
-  enforce(c, adminOnly);
+  const admin = enforce(c, adminOnly);
   const body = await parse(c, createUserSchema);
   const db = c.get('db');
 
@@ -90,12 +91,19 @@ router.post('/', async (c) => {
     .insert(users)
     .values({ email: body.email, passwordHash, name: body.name ?? null, role: body.role })
     .returning();
+  await logAudit(db, {
+    userId: admin?.id ?? null,
+    action: 'user.create',
+    collection: 'users',
+    entryId: user!.id,
+    details: { email: user!.email, role: user!.role },
+  });
   return c.json(adminView(user!), 201);
 });
 
 // Update a user's name/role/active status.
 router.patch('/:id', async (c) => {
-  enforce(c, adminOnly);
+  const admin = enforce(c, adminOnly);
   const id = c.req.param('id');
   const body = await parse(c, updateUserSchema);
   const db = c.get('db');
@@ -112,6 +120,17 @@ router.patch('/:id', async (c) => {
     .set({ name: body.name ?? target.name, role: nextRole, active: nextActive })
     .where(eq(users.id, id))
     .returning();
+  await logAudit(db, {
+    userId: admin?.id ?? null,
+    action: 'user.update',
+    collection: 'users',
+    entryId: updated!.id,
+    details: {
+      roleChanged: nextRole !== target.role ? { from: target.role, to: nextRole } : undefined,
+      activeChanged:
+        nextActive !== target.active ? { from: target.active, to: nextActive } : undefined,
+    },
+  });
   return c.json(adminView(updated!));
 });
 
