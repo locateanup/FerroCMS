@@ -49,4 +49,9 @@ export interface AppConfig {
   siteUrl?: string;
   webhookUrls: string[];
   webhookSecret?: string;
+  /** Incoming webhook URL for Slack/Discord notifications (publish, comment, review-requested). */
+  slackWebhookUrl?: string;
+  discordWebhookUrl?: string;
+  /** Address notified by email on the same events, via the configured EmailProvider. */
+  notifyEmailTo?: string;
 }

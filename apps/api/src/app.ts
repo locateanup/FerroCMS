@@ -22,6 +22,7 @@ import { calendarRouter } from './routes/calendar.js';
 import { robotsHandler, sitemapHandler } from './routes/seo.js';
 import { collections } from './config/collections.js';
 import { yoga } from './graphql/index.js';
+import type { EmailProvider } from './lib/email.js';
 
 /** Everything a request needs, resolved per platform (Workers or Node). */
 export interface PlatformContext {
@@ -30,6 +31,7 @@ export interface PlatformContext {
   kv: KVAdapter;
   cache: CacheAdapter;
   config: AppConfig;
+  email: EmailProvider;
 }
 
 export type MakeContext = (c: Context<AppBindings>) => PlatformContext;
@@ -63,6 +65,7 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
     c.set('kv', ctx.kv);
     c.set('cache', ctx.cache);
     c.set('config', ctx.config);
+    c.set('email', ctx.email);
     c.set('user', await resolveUser(c));
     await next();
   });

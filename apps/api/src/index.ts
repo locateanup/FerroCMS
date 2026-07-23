@@ -5,6 +5,7 @@ import { createApp } from './app.js';
 import { cfCache, configFromEnv, r2Storage } from './platform/cloudflare.js';
 import { sqlKV } from './platform/kv.js';
 import { runScheduledPublish } from './services/scheduling.js';
+import { consoleEmailProvider } from './lib/email.js';
 import type { Env } from './env.js';
 
 const app = createApp((c) => {
@@ -15,6 +16,7 @@ const app = createApp((c) => {
     kv: sqlKV(db),
     cache: cfCache(),
     config: configFromEnv(c.env),
+    email: consoleEmailProvider(),
   };
 });
 
@@ -25,6 +27,8 @@ const app = createApp((c) => {
 export default Object.assign(app, {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     const db = createDb(env.DATABASE_URL, env.DATABASE_AUTH_TOKEN);
-    ctx.waitUntil(runScheduledPublish(db, configFromEnv(env), cfCache(), sqlKV(db)));
+    ctx.waitUntil(
+      runScheduledPublish(db, configFromEnv(env), cfCache(), sqlKV(db), consoleEmailProvider()),
+    );
   },
 });

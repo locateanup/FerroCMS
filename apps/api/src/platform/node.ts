@@ -80,5 +80,8 @@ export function configFromProcessEnv(): AppConfig {
     siteUrl: env.SITE_URL,
     webhookUrls: csv(env.WEBHOOK_URLS),
     webhookSecret: env.WEBHOOK_SECRET,
+    slackWebhookUrl: env.SLACK_WEBHOOK_URL,
+    discordWebhookUrl: env.DISCORD_WEBHOOK_URL,
+    notifyEmailTo: env.NOTIFY_EMAIL_TO,
   };
 }

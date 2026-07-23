@@ -3,6 +3,8 @@ import { entries, type Entry } from '@ferrocms/db';
 import type { Db } from '@ferrocms/db';
 import { sendWebhooks } from '../lib/webhooks.js';
 import { purgeCollectionCache } from '../lib/cachePurge.js';
+import { notifyAll, type EmailSender } from '../lib/notifications.js';
+import { getCollection } from '../config/collections.js';
 import type { AppConfig, CacheAdapter, KVAdapter } from '../platform/types.js';
 
 /** Publish every `'scheduled'` entry whose `scheduledAt` has arrived. */
@@ -35,6 +37,7 @@ export async function runScheduledPublish(
   config: AppConfig,
   cache: CacheAdapter,
   kv: KVAdapter,
+  email: EmailSender,
   now?: Date,
 ): Promise<number> {
   const published = await publishDueEntries(db, now);
@@ -65,5 +68,21 @@ export async function runScheduledPublish(
       ),
     );
   }
+
+  await Promise.all(
+    published.map((entry) => {
+      const collection = getCollection(entry.collection);
+      const data = entry.data as Record<string, unknown>;
+      const title = collection ? data[collection.admin.useAsTitle] : undefined;
+      const label = typeof title === 'string' ? title : entry.id;
+      return notifyAll(
+        config,
+        email,
+        'FerroCMS: entry published',
+        `Published (scheduled): "${label}" in ${entry.collection}.`,
+      );
+    }),
+  );
+
   return published.length;
 }

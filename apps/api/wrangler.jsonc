@@ -31,7 +31,13 @@
     // Comma-separated URLs notified on content changes (e.g. your site's
     // revalidation / deploy-hook endpoint). WEBHOOK_SECRET (for HMAC signing)
     // should be set as a secret, not here.
-    "WEBHOOK_URLS": ""
+    "WEBHOOK_URLS": "",
+    // Optional: Slack/Discord incoming webhook URLs and/or an email address,
+    // notified on publish, new comments, and review requests. All optional —
+    // notifications no-op entirely if none are set.
+    "SLACK_WEBHOOK_URL": "",
+    "DISCORD_WEBHOOK_URL": "",
+    "NOTIFY_EMAIL_TO": ""
   }
   // Secrets (DATABASE_URL, AUTH_SECRET) are provided via `.dev.vars` locally
   // and `wrangler secret put` in production — never commit them here.

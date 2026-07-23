@@ -4,7 +4,9 @@ import { atLeast } from '@ferrocms/core';
 import type { AppBindings } from '../env.js';
 import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
+import { background } from '../lib/background.js';
 import { checkRateLimit, clientIp } from '../lib/rateLimit.js';
+import { notifyAll } from '../lib/notifications.js';
 import { getCollection } from '../config/collections.js';
 import * as entriesSvc from '../services/entries.js';
 import * as svc from '../services/comments.js';
@@ -69,6 +71,15 @@ router.post('/', async (c) => {
     authorEmail: body.authorEmail ?? null,
     body: body.body,
   });
+  background(
+    c,
+    notifyAll(
+      c.get('config'),
+      c.get('email'),
+      'FerroCMS: new comment awaiting moderation',
+      `${body.authorName} commented on ${body.collection}/${body.entryId}: "${body.body}"`,
+    ),
+  );
   return c.json(comment, 201);
 });
 

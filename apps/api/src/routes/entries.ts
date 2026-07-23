@@ -19,6 +19,7 @@ import { background } from '../lib/background.js';
 import { sendWebhooks, type WebhookEventType } from '../lib/webhooks.js';
 import { createPreviewToken, verifyPreviewToken } from '../lib/previewToken.js';
 import { purgeCollectionCache, trackListCacheKey } from '../lib/cachePurge.js';
+import { notifyAll } from '../lib/notifications.js';
 import type { Entry } from '@ferrocms/db';
 import * as svc from '../services/entries.js';
 import * as reviewSvc from '../services/review.js';
@@ -44,6 +45,20 @@ function emitWebhook(c: Context<AppBindings>, entry: Entry, event: WebhookEventT
       },
     }),
   );
+}
+
+function entryTitle(collection: ResolvedCollection, entry: Entry): string {
+  const value = (entry.data as Record<string, unknown>)[collection.admin.useAsTitle];
+  return typeof value === 'string' ? value : entry.id;
+}
+
+/** Slack/Discord/email notification in the background — no-op if nothing's configured. */
+function notifyEvent(
+  c: Context<AppBindings>,
+  subject: string,
+  message: string,
+): void {
+  background(c, notifyAll(c.get('config'), c.get('email'), subject, message));
 }
 
 const statusSchema = z.enum(ENTRY_STATUSES);
@@ -246,6 +261,13 @@ router.post('/:collection', async (c) => {
     });
     emitWebhook(c, entry, entry.status === 'published' ? 'entry.published' : 'entry.created');
     await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+    if (entry.status === 'published') {
+      notifyEvent(
+        c,
+        'FerroCMS: entry published',
+        `Published: "${entryTitle(collection, entry)}" in ${collection.slug}.`,
+      );
+    }
     return c.json(entry, 201);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
@@ -291,6 +313,13 @@ router.patch('/:collection/:id', async (c) => {
     const justPublished = existing.status !== 'published' && entry.status === 'published';
     emitWebhook(c, entry, justPublished ? 'entry.published' : 'entry.updated');
     await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
+    if (justPublished) {
+      notifyEvent(
+        c,
+        'FerroCMS: entry published',
+        `Published: "${entryTitle(collection, entry)}" in ${collection.slug}.`,
+      );
+    }
     return c.json(entry);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
@@ -413,6 +442,11 @@ router.post('/:collection/:id/submit-for-review', async (c) => {
   if (!existing) throw errors.notFound('Entry');
 
   const entry = await reviewSvc.submitForReview(c.get('db'), existing, user);
+  notifyEvent(
+    c,
+    'FerroCMS: review requested',
+    `"${entryTitle(collection, entry)}" (${collection.slug}) was submitted for review${user?.email ? ` by ${user.email}` : ''}.`,
+  );
   return c.json(entry);
 });
 
@@ -435,6 +469,11 @@ router.post('/:collection/:id/review', async (c) => {
   if (body.approved) {
     emitWebhook(c, entry, 'entry.published');
     await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
+    notifyEvent(
+      c,
+      'FerroCMS: entry published',
+      `Published: "${entryTitle(collection, entry)}" in ${collection.slug} (approved on review).`,
+    );
   }
   return c.json(entry);
 });

@@ -23,6 +23,7 @@ router.post('/publish-scheduled', async (c) => {
     c.get('config'),
     c.get('cache'),
     c.get('kv'),
+    c.get('email'),
   );
   return c.json({ published });
 });
