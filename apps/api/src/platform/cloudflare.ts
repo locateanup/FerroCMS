@@ -24,11 +24,26 @@ function cacheRequest(key: string): Request {
   return new Request(`https://ferrocms-cache.internal/${encodeURIComponent(key)}`);
 }
 
+interface WorkersCache {
+  match(request: Request): Promise<Response | undefined>;
+  put(request: Request, response: Response): Promise<void>;
+}
+
+/**
+ * `caches.default` typed by hand rather than relying on the ambient
+ * `CacheStorage` global — its exact shape depends on which lib types (DOM vs
+ * `@cloudflare/workers-types`) the compiler resolves for a given dependency
+ * tree, and only Cloudflare's variant has `.default`.
+ */
+function workersDefaultCache(): WorkersCache {
+  return (caches as unknown as { default: WorkersCache }).default;
+}
+
 /** Wraps the Workers edge Cache API (`caches.default`) behind `CacheAdapter`. */
 export function cfCache(): CacheAdapter {
   return {
     async get(key) {
-      const match = await caches.default.match(cacheRequest(key));
+      const match = await workersDefaultCache().match(cacheRequest(key));
       if (!match) return null;
       return {
         body: await match.text(),
@@ -42,7 +57,7 @@ export function cfCache(): CacheAdapter {
           'cache-control': `public, max-age=${ttlSeconds}`,
         },
       });
-      await caches.default.put(cacheRequest(key), response);
+      await workersDefaultCache().put(cacheRequest(key), response);
     },
   };
 }

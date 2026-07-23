@@ -84,7 +84,9 @@ Legend: ✅ implemented · 🚧 planned
 - ✅ Webhooks on content changes (HMAC-signed) — on-publish revalidation for your site
 - ✅ Edge caching for public, anonymous reads — Cloudflare's Cache API on Workers, an in-process TTL
   cache on Node; short TTL (30s), never applied to authenticated/draft responses
-- 🚧 GraphQL API
+- ✅ GraphQL API (`/graphql`, via graphql-yoga) — a generic `Entry`/`EntryList` schema with a JSON
+  scalar for `data` (matches the config-as-code, schema-flexible content model rather than
+  generating a distinct type per collection); same access control as REST, field-level included
 
 ### Admin
 
@@ -265,6 +267,21 @@ import { localize } from '@ferrocms/sdk';
 
 const page = await client.findBySlug('pages', 'about');
 const localized = localize(page.data, ['body'], 'fr', 'en'); // falls back to 'en' if untranslated
+```
+
+Prefer GraphQL? Query the same content from `/graphql` (`data` is a JSON scalar):
+
+```graphql
+query {
+  entries(collection: "posts", limit: 10) {
+    total
+    items {
+      id
+      slug
+      data
+    }
+  }
+}
 ```
 
 ## FAQ

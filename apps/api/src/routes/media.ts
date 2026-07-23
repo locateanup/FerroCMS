@@ -130,7 +130,7 @@ router.get('/file/:key{.+}', async (c) => {
   if (object.contentType) headers.set('content-type', object.contentType);
   if (object.etag) headers.set('etag', object.etag);
   headers.set('cache-control', 'public, max-age=31536000, immutable');
-  return new Response(object.body, { headers });
+  return new Response(object.body as BodyInit, { headers });
 });
 
 // Delete a media item from R2 and the database.

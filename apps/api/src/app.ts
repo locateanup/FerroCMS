@@ -12,6 +12,7 @@ import { entriesRouter } from './routes/entries.js';
 import { mediaRouter } from './routes/media.js';
 import { robotsHandler, sitemapHandler } from './routes/seo.js';
 import { collections } from './config/collections.js';
+import { yoga } from './graphql/index.js';
 
 /** Everything a request needs, resolved per platform (Workers or Node). */
 export interface PlatformContext {
@@ -92,6 +93,11 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
     }));
     return c.json({ items: schemas });
   });
+
+  // GraphQL — mirrors the REST API's access control exactly (see graphql/schema.ts).
+  app.on(['GET', 'POST'], '/graphql', (c) =>
+    yoga.fetch(c.req.raw, { db: c.get('db'), user: c.get('user') }),
+  );
 
   // Register specific routers before the catch-all /:collection routes.
   app.route('/api/auth', authRouter);
