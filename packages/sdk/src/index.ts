@@ -65,6 +65,17 @@ export interface FerroCmsClient {
     collection: string,
     slug: string,
   ): Promise<FerroCmsEntry<T> | null>;
+  /**
+   * Fetch a draft/unpublished entry using a preview token minted by an
+   * authenticated editor (`POST /api/:collection/:id/preview-token` in the
+   * CMS). The backend half of "live preview" — call this from your
+   * framework's own preview/draft-mode route.
+   */
+  preview<T = Record<string, unknown>>(
+    collection: string,
+    id: string,
+    token: string,
+  ): Promise<FerroCmsEntry<T> | null>;
   /** Build a public URL for a media object key. */
   mediaUrl(key: string): string;
 }
@@ -121,6 +132,16 @@ export function createClient(options: ClientOptions): FerroCmsClient {
     async findBySlug<T = Record<string, unknown>>(collection: string, slug: string) {
       const result = await this.find<T>(collection, { slug, limit: 1 });
       return result.items[0] ?? null;
+    },
+    async preview<T = Record<string, unknown>>(collection: string, id: string, token: string) {
+      try {
+        return await request<FerroCmsEntry<T>>(
+          `/api/${encodeURIComponent(collection)}/${encodeURIComponent(id)}/preview?token=${encodeURIComponent(token)}`,
+        );
+      } catch (err) {
+        if (err instanceof FerroCmsError && (err.status === 404 || err.status === 401)) return null;
+        throw err;
+      }
     },
     mediaUrl(key) {
       return `${base}/api/media/file/${key}`;

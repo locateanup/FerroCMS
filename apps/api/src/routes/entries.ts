@@ -16,6 +16,7 @@ import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
 import { background } from '../lib/background.js';
 import { sendWebhooks, type WebhookEventType } from '../lib/webhooks.js';
+import { createPreviewToken, verifyPreviewToken } from '../lib/previewToken.js';
 import type { Entry } from '@ferrocms/db';
 import * as svc from '../services/entries.js';
 
@@ -256,6 +257,48 @@ router.delete('/:collection/:id', async (c) => {
   await svc.deleteEntry(c.get('db'), id);
   emitWebhook(c, existing, 'entry.deleted');
   return c.body(null, 204);
+});
+
+// Mint a short-lived preview token for one entry. Only someone who already
+// has read access to the entry (an editor working on a draft, typically) can
+// request one — the resulting token itself is unauthenticated and public.
+router.post('/:collection/:id/preview-token', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  enforce(c, resolveAccess(collection.access).read, id);
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+
+  const { token, expiresAt } = await createPreviewToken(
+    c.get('config').authSecret,
+    collection.slug,
+    id,
+  );
+  return c.json({ token, expiresAt });
+});
+
+// Fetch a draft/unpublished entry given a valid preview token — the backend
+// half of "live preview" (your front-end's preview route calls this). Bypasses
+// the published-only gate only; field-level read permissions still apply as
+// if the request were anonymous.
+router.get('/:collection/:id/preview', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const token = c.req.query('token');
+  if (!token) throw errors.badRequest('Missing preview token.');
+
+  const valid = await verifyPreviewToken(c.get('config').authSecret, collection.slug, id, token);
+  if (!valid) throw errors.unauthorized('Invalid or expired preview token.');
+
+  const entry = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!entry) throw errors.notFound('Entry');
+  const data = filterFieldsForRead(
+    collection.fields,
+    entry.data as Record<string, unknown>,
+    accessArgs(null, id),
+  );
+  return c.json({ ...entry, data });
 });
 
 // List an entry's revision history (newest first).

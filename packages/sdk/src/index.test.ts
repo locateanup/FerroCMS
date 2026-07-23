@@ -65,4 +65,28 @@ describe('createClient', () => {
     const client = createClient({ url: 'https://cms.test/', fetch: vi.fn() });
     expect(client.mediaUrl('2026/abc.png')).toBe('https://cms.test/api/media/file/2026/abc.png');
   });
+
+  it('preview fetches the draft entry and hits the right URL', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ id: '1', status: 'draft', data: { title: 'Draft' } }));
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const entry = await client.preview('posts', 'abc', 'tok123');
+
+    expect(entry?.status).toBe('draft');
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/posts/abc/preview?token=tok123');
+  });
+
+  it('preview returns null for an invalid/expired token (401) or missing entry (404)', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'unauthorized', message: 'x' } }, 401))
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'not_found', message: 'x' } }, 404));
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    expect(await client.preview('posts', 'abc', 'bad-token')).toBeNull();
+    expect(await client.preview('posts', 'missing', 'tok')).toBeNull();
+  });
 });

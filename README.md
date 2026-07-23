@@ -93,7 +93,12 @@ Legend: ✅ implemented · 🚧 planned
 - ✅ Clean React admin dashboard (login, collection lists, generated editor, media library)
 - ✅ Relation & media field pickers
 - ✅ First-run admin setup
-- 🚧 Live preview, drag-and-drop page builder, real-time collaboration
+- ✅ Draft/preview API — the backend half of live preview: an editor mints a short-lived signed
+  token for one entry (`POST /:collection/:id/preview-token`), your front-end's own preview route
+  calls `GET /:collection/:id/preview?token=...` (or `client.preview()` in the SDK) to render the
+  draft. Same pattern as Next.js draft mode / Contentful / Sanity preview links.
+- 🚧 A rendered live-preview iframe inside the admin itself, drag-and-drop page builder, real-time
+  collaboration
 
 ### Media
 
@@ -284,6 +289,16 @@ query {
     }
   }
 }
+```
+
+Live preview: mint a token in the admin (or via the API as an editor), then fetch the draft from
+your front-end's own preview route:
+
+```ts
+// In the CMS (editor session): POST /api/posts/:id/preview-token -> { token, expiresAt }
+
+// In your front-end's preview route:
+const draft = await client.preview('posts', id, token);
 ```
 
 ## FAQ
