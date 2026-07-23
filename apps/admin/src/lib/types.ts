@@ -24,6 +24,13 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export interface SearchHit {
+  entryId: string;
+  collection: string;
+  title: string;
+  snippet: string;
+}
+
 export interface AuditLogEntry {
   id: string;
   userId: string | null;

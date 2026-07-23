@@ -13,6 +13,7 @@ import { mediaRouter } from './routes/media.js';
 import { usersRouter } from './routes/users.js';
 import { systemRouter } from './routes/system.js';
 import { auditRouter } from './routes/audit.js';
+import { searchRouter } from './routes/search.js';
 import { robotsHandler, sitemapHandler } from './routes/seo.js';
 import { collections } from './config/collections.js';
 import { yoga } from './graphql/index.js';
@@ -107,6 +108,7 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
   app.route('/api/media', mediaRouter);
   app.route('/api/users', usersRouter);
   app.route('/api/audit-log', auditRouter);
+  app.route('/api/search', searchRouter);
   app.route('/api/system', systemRouter);
   app.route('/api', entriesRouter);
 

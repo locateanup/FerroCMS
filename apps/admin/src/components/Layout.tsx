@@ -27,6 +27,17 @@ export function Layout({ children }: { children: ReactNode }) {
           <span>FerroCMS</span>
         </div>
 
+        <input
+          type="search"
+          placeholder="Search…"
+          style={{ margin: '0 0 12px' }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            const q = (e.target as HTMLInputElement).value.trim();
+            if (q) navigate(`/search?q=${encodeURIComponent(q)}`);
+          }}
+        />
+
         <div className="section-label">Content</div>
         {content.map((c) => (
           <NavLink

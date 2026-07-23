@@ -10,6 +10,7 @@ import {
 } from '@ferrocms/core';
 import type { AuthUser } from '../env.js';
 import { logAudit } from './audit.js';
+import { indexEntry, removeFromIndex } from './search.js';
 
 type Data = Record<string, unknown>;
 
@@ -151,6 +152,7 @@ export async function createEntry(db: Db, input: CreateInput): Promise<Entry> {
     entryId: created.id,
     details: { status: created.status },
   });
+  await indexEntry(db, collection, created);
   return created;
 }
 
@@ -209,6 +211,7 @@ export async function updateEntry(db: Db, input: UpdateInput): Promise<Entry> {
     entryId: updated.id,
     details: { status: updated.status, previousStatus: existing.status },
   });
+  await indexEntry(db, collection, updated);
   return updated;
 }
 
@@ -220,6 +223,7 @@ export async function deleteEntry(db: Db, entry: Entry, user: AuthUser | null): 
     collection: entry.collection,
     entryId: entry.id,
   });
+  await removeFromIndex(db, entry.id);
 }
 
 /** Write an immutable snapshot into the revisions table. */

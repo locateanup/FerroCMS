@@ -9,6 +9,7 @@ import type {
   MediaItem,
   Revision,
   Role,
+  SearchHit,
   User,
 } from './types.js';
 
@@ -149,6 +150,8 @@ export const api = {
     }),
   updateUser: (id: string, patch: { name?: string; role?: Role; active?: boolean }) =>
     req<AdminUser>(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  search: (q: string) => req<{ items: SearchHit[] }>(`/api/search?q=${encodeURIComponent(q)}`),
 
   listAuditLog: (params: { limit?: number; offset?: number } = {}) => {
     const q = new URLSearchParams();
