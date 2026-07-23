@@ -2,7 +2,7 @@
 
 import { createDb } from '@ferrocms/db';
 import { createApp } from './app.js';
-import { configFromEnv, r2Storage } from './platform/cloudflare.js';
+import { cfCache, configFromEnv, r2Storage } from './platform/cloudflare.js';
 import { sqlKV } from './platform/kv.js';
 
 const app = createApp((c) => {
@@ -11,6 +11,7 @@ const app = createApp((c) => {
     db,
     storage: r2Storage(c.env.MEDIA),
     kv: sqlKV(db),
+    cache: cfCache(),
     config: configFromEnv(c.env),
   };
 });

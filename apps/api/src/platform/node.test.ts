@@ -1,8 +1,8 @@
-import { afterAll, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, describe, expect, it, vi } from 'vitest';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { fsStorage } from './node.js';
+import { fsStorage, memoryCache } from './node.js';
 
 const root = await mkdtemp(join(tmpdir(), 'ferrocms-storage-'));
 const storage = fsStorage(root);
@@ -31,5 +31,40 @@ describe('fsStorage', () => {
 
   it('returns null for a missing key', async () => {
     expect(await storage.get('nope/missing.png')).toBeNull();
+  });
+});
+
+describe('memoryCache', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('stores and retrieves a value', async () => {
+    const cache = memoryCache();
+    await cache.put('k', { body: '{"a":1}', contentType: 'application/json' }, 60);
+    expect(await cache.get('k')).toEqual({ body: '{"a":1}', contentType: 'application/json' });
+  });
+
+  it('returns null for a key that was never set', async () => {
+    const cache = memoryCache();
+    expect(await cache.get('missing')).toBeNull();
+  });
+
+  it('expires an entry after its TTL', async () => {
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now);
+    const cache = memoryCache();
+    await cache.put('k', { body: 'x', contentType: 'text/plain' }, 30);
+
+    vi.spyOn(Date, 'now').mockReturnValue(now + 29_000);
+    expect(await cache.get('k')).not.toBeNull();
+
+    vi.spyOn(Date, 'now').mockReturnValue(now + 31_000);
+    expect(await cache.get('k')).toBeNull();
+  });
+
+  it('keeps separate instances independent', async () => {
+    const a = memoryCache();
+    const b = memoryCache();
+    await a.put('k', { body: 'from-a', contentType: 'text/plain' }, 60);
+    expect(await b.get('k')).toBeNull();
   });
 });

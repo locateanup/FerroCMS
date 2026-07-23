@@ -8,7 +8,7 @@
 import { serve } from '@hono/node-server';
 import { createDb } from '@ferrocms/db';
 import { createApp } from './app.js';
-import { configFromProcessEnv, fsStorage } from './platform/node.js';
+import { configFromProcessEnv, fsStorage, memoryCache } from './platform/node.js';
 import { sqlKV } from './platform/kv.js';
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -18,9 +18,10 @@ const db = createDb(databaseUrl, process.env.DATABASE_AUTH_TOKEN);
 const config = configFromProcessEnv();
 const storage = fsStorage(process.env.MEDIA_DIR ?? './.ferrocms/media');
 const kv = sqlKV(db);
+const cache = memoryCache();
 
 // The context is the same for every request on Node — build it once.
-const app = createApp(() => ({ db, storage, kv, config }));
+const app = createApp(() => ({ db, storage, kv, cache, config }));
 
 const port = Number(process.env.PORT ?? 8787);
 serve({ fetch: app.fetch, port }, (info) => {

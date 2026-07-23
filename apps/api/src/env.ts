@@ -1,6 +1,6 @@
 import type { Db } from '@ferrocms/db';
 import type { Role } from '@ferrocms/core';
-import type { AppConfig, KVAdapter, StorageAdapter } from './platform/types.js';
+import type { AppConfig, CacheAdapter, KVAdapter, StorageAdapter } from './platform/types.js';
 
 /** Cloudflare bindings + secrets available to the Worker. */
 export interface Env {
@@ -38,6 +38,7 @@ export interface Variables {
   user: AuthUser | null;
   storage: StorageAdapter;
   kv: KVAdapter;
+  cache: CacheAdapter;
   config: AppConfig;
 }
 

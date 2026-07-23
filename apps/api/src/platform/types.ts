@@ -22,6 +22,23 @@ export interface KVAdapter {
   delete(key: string): Promise<void>;
 }
 
+export interface CachedResponse {
+  body: string;
+  contentType: string;
+}
+
+/**
+ * A short-TTL response cache for public, anonymous GET reads. On Cloudflare
+ * this wraps the edge Cache API; on Node it's an in-process Map. Either way
+ * this is TTL-based staleness, not push-invalidated on publish — a request
+ * can lag up to `ttlSeconds` behind the latest write. Never used for
+ * authenticated or draft-including responses.
+ */
+export interface CacheAdapter {
+  get(key: string): Promise<CachedResponse | null>;
+  put(key: string, value: CachedResponse, ttlSeconds: number): Promise<void>;
+}
+
 /** String configuration, resolved from Workers vars or process.env. */
 export interface AppConfig {
   authSecret: string;

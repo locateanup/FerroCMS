@@ -2,7 +2,7 @@
 
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import type { AppConfig, StorageAdapter } from './types.js';
+import type { AppConfig, CacheAdapter, CachedResponse, StorageAdapter } from './types.js';
 
 /** Filesystem-backed object storage (swap for S3 in production if desired). */
 export function fsStorage(root: string): StorageAdapter {
@@ -33,6 +33,29 @@ export function fsStorage(root: string): StorageAdapter {
       const path = pathFor(key);
       await rm(path, { force: true });
       await rm(`${path}.type`, { force: true });
+    },
+  };
+}
+
+/**
+ * In-process TTL cache for Node — no shared/edge cache to reach for, but a
+ * real, working cache within a single server process. Create once and reuse
+ * across requests (a fresh call makes a fresh, empty cache).
+ */
+export function memoryCache(): CacheAdapter {
+  const store = new Map<string, { value: CachedResponse; expiresAt: number }>();
+  return {
+    async get(key) {
+      const entry = store.get(key);
+      if (!entry) return null;
+      if (Date.now() > entry.expiresAt) {
+        store.delete(key);
+        return null;
+      }
+      return entry.value;
+    },
+    async put(key, value, ttlSeconds) {
+      store.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
     },
   };
 }

@@ -4,7 +4,7 @@ import { secureHeaders } from 'hono/secure-headers';
 import { authenticated } from '@ferrocms/core';
 import type { Db } from '@ferrocms/db';
 import type { AppBindings } from './env.js';
-import type { AppConfig, KVAdapter, StorageAdapter } from './platform/types.js';
+import type { AppConfig, CacheAdapter, KVAdapter, StorageAdapter } from './platform/types.js';
 import { enforce, resolveUser } from './auth/middleware.js';
 import { toErrorResponse } from './lib/errors.js';
 import { authRouter } from './routes/auth.js';
@@ -18,6 +18,7 @@ export interface PlatformContext {
   db: Db;
   storage: StorageAdapter;
   kv: KVAdapter;
+  cache: CacheAdapter;
   config: AppConfig;
 }
 
@@ -50,6 +51,7 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
     c.set('db', ctx.db);
     c.set('storage', ctx.storage);
     c.set('kv', ctx.kv);
+    c.set('cache', ctx.cache);
     c.set('config', ctx.config);
     c.set('user', await resolveUser(c));
     await next();

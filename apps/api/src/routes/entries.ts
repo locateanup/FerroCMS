@@ -85,6 +85,37 @@ async function parseBody<T>(c: Context<AppBindings>, schema: z.ZodType<T>): Prom
   return parsed.data;
 }
 
+/**
+ * How long a public (anonymous, published-only) read may be served stale from
+ * cache before hitting the database again. This is TTL-based staleness, not
+ * push-invalidated on publish — a request can lag up to this long behind the
+ * latest write. Keep it short rather than promising instant invalidation.
+ */
+const PUBLIC_CACHE_TTL_SECONDS = 30;
+
+/** Return a cached JSON response with an `x-cache` observability header. */
+function cachedJson(cached: { body: string; contentType: string }): Response {
+  return new Response(cached.body, {
+    headers: { 'content-type': cached.contentType, 'x-cache': 'HIT' },
+  });
+}
+
+/** Serve fresh JSON, caching it in the background for public reads only. */
+function freshJson(c: Context<AppBindings>, payload: unknown, cacheKey: string | null): Response {
+  const body = JSON.stringify(payload);
+  if (cacheKey) {
+    background(
+      c,
+      c
+        .get('cache')
+        .put(cacheKey, { body, contentType: 'application/json' }, PUBLIC_CACHE_TTL_SECONDS),
+    );
+  }
+  return new Response(body, {
+    headers: { 'content-type': 'application/json', ...(cacheKey ? { 'x-cache': 'MISS' } : {}) },
+  });
+}
+
 // List entries in a collection.
 router.get('/:collection', async (c) => {
   const collection = requireCollection(c.req.param('collection'));
@@ -98,13 +129,24 @@ router.get('/:collection', async (c) => {
   }
   const limit = Math.min(Math.max(Number(c.req.query('limit') ?? 20) || 20, 1), 100);
   const offset = Math.max(Number(c.req.query('offset') ?? 0) || 0, 0);
-
   const slug = c.req.query('slug');
+  const publishedOnly = user === null;
+
+  // Only anonymous, published-only reads are safe to cache — authenticated
+  // responses vary by role (field-level permissions) and may include drafts.
+  const cacheKey = publishedOnly
+    ? `list:${collection.slug}:${slug ?? ''}:${limit}:${offset}`
+    : null;
+  if (cacheKey) {
+    const cached = await c.get('cache').get(cacheKey);
+    if (cached) return cachedJson(cached);
+  }
+
   const result = await svc.listEntries(c.get('db'), {
     collection: collection.slug,
     status: statusParam as EntryStatus | undefined,
     slug: slug || undefined,
-    publishedOnly: user === null,
+    publishedOnly,
     limit,
     offset,
   });
@@ -113,7 +155,7 @@ router.get('/:collection', async (c) => {
     ...entry,
     data: filterFieldsForRead(collection.fields, entry.data as Record<string, unknown>, args),
   }));
-  return c.json({ ...result, items, limit, offset });
+  return freshJson(c, { ...result, items, limit, offset }, cacheKey);
 });
 
 // Get one entry by id.
@@ -122,16 +164,22 @@ router.get('/:collection/:id', async (c) => {
   const id = c.req.param('id');
   enforce(c, resolveAccess(collection.access).read, id);
 
+  const user = c.get('user');
+  const cacheKey = user === null ? `one:${collection.slug}:${id}` : null;
+  if (cacheKey) {
+    const cached = await c.get('cache').get(cacheKey);
+    if (cached) return cachedJson(cached);
+  }
+
   const entry = await svc.getEntry(c.get('db'), collection.slug, id);
   if (!entry) throw errors.notFound('Entry');
-  const user = c.get('user');
   if (user === null && entry.status !== 'published') throw errors.notFound('Entry');
   const data = filterFieldsForRead(
     collection.fields,
     entry.data as Record<string, unknown>,
     accessArgs(user, id),
   );
-  return c.json({ ...entry, data });
+  return freshJson(c, { ...entry, data }, cacheKey);
 });
 
 // Create an entry.

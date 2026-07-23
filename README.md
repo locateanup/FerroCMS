@@ -82,7 +82,9 @@ Legend: ✅ implemented · 🚧 planned
 - ✅ Typed client SDK (`@ferrocms/sdk`) for any JS front-end
 - ✅ Public read / draft-protected access rules
 - ✅ Webhooks on content changes (HMAC-signed) — on-publish revalidation for your site
-- 🚧 GraphQL API, edge caching
+- ✅ Edge caching for public, anonymous reads — Cloudflare's Cache API on Workers, an in-process TTL
+  cache on Node; short TTL (30s), never applied to authenticated/draft responses
+- 🚧 GraphQL API
 
 ### Admin
 
