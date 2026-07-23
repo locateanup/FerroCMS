@@ -33,6 +33,17 @@ export interface FindOptions {
   offset?: number;
 }
 
+export interface FerroCmsComment {
+  id: string;
+  collection: string;
+  entryId: string;
+  authorName: string;
+  authorEmail: string | null;
+  body: string;
+  approved: boolean;
+  createdAt: string;
+}
+
 export interface ClientOptions {
   /** Base URL of the FerroCMS API, e.g. https://cms.example.com */
   url: string;
@@ -87,6 +98,16 @@ export interface FerroCmsClient {
    * redirect (the CMS only holds the mapping, not the site's routes).
    */
   resolveRedirect(path: string): Promise<{ toPath: string; statusCode: number } | null>;
+  /** Approved comments on one entry, oldest first. */
+  listComments(collection: string, entryId: string): Promise<FerroCmsComment[]>;
+  /** Submit a comment. It lands unapproved — an editor must moderate it in before `listComments` returns it. */
+  submitComment(input: {
+    collection: string;
+    entryId: string;
+    authorName: string;
+    authorEmail?: string;
+    body: string;
+  }): Promise<FerroCmsComment>;
 }
 
 export * from './seo.js';
@@ -168,6 +189,19 @@ export function createClient(options: ClientOptions): FerroCmsClient {
         if (err instanceof FerroCmsError && err.status === 404) return null;
         throw err;
       }
+    },
+    async listComments(collection, entryId) {
+      const result = await request<{ items: FerroCmsComment[] }>(
+        `/api/comments?collection=${encodeURIComponent(collection)}&entryId=${encodeURIComponent(entryId)}`,
+      );
+      return result.items;
+    },
+    submitComment(input) {
+      return request<FerroCmsComment>('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
     },
   };
 }

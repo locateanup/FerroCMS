@@ -87,6 +87,14 @@ export function Layout({ children }: { children: ReactNode }) {
         <div className="spacer" />
         {(user?.role === 'admin' || user?.role === 'editor') && (
           <NavLink
+            to="/comments"
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
+            <span>Comments</span>
+          </NavLink>
+        )}
+        {(user?.role === 'admin' || user?.role === 'editor') && (
+          <NavLink
             to="/redirects"
             className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
           >

@@ -2,6 +2,7 @@ import type {
   AdminUser,
   AuditLogEntry,
   CollectionSchema,
+  Comment,
   Entry,
   EntryStatus,
   GlobalEntry,
@@ -168,6 +169,10 @@ export const api = {
       body: JSON.stringify({ fromPath, toPath, statusCode }),
     }),
   deleteRedirect: (id: string) => req<void>(`/api/redirects/${id}`, { method: 'DELETE' }),
+
+  listPendingComments: () => req<{ items: Comment[] }>('/api/comments/pending'),
+  approveComment: (id: string) => req<Comment>(`/api/comments/${id}`, { method: 'PATCH' }),
+  deleteComment: (id: string) => req<void>(`/api/comments/${id}`, { method: 'DELETE' }),
 
   listAuditLog: (params: { limit?: number; offset?: number } = {}) => {
     const q = new URLSearchParams();

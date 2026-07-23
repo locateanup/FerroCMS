@@ -37,6 +37,17 @@ export interface GlobalEntry {
   updatedAt: string;
 }
 
+export interface Comment {
+  id: string;
+  collection: string;
+  entryId: string;
+  authorName: string;
+  authorEmail: string | null;
+  body: string;
+  approved: boolean;
+  createdAt: string;
+}
+
 export interface Redirect {
   id: string;
   fromPath: string;

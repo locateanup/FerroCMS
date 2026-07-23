@@ -123,4 +123,47 @@ describe('createClient', () => {
 
     expect(await client.resolveRedirect('/never-existed')).toBeNull();
   });
+
+  it('listComments fetches the right URL and returns only approved comments', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        items: [{ id: '1', collection: 'posts', entryId: 'p1', authorName: 'Alice', body: 'Hi', approved: true }],
+      }),
+    );
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const items = await client.listComments('posts', 'p1');
+
+    expect(items).toHaveLength(1);
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/comments?collection=posts&entryId=p1');
+  });
+
+  it('submitComment posts JSON to the right URL', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        { id: '1', collection: 'posts', entryId: 'p1', authorName: 'Alice', body: 'Hi', approved: false },
+        201,
+      ),
+    );
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const comment = await client.submitComment({
+      collection: 'posts',
+      entryId: 'p1',
+      authorName: 'Alice',
+      body: 'Hi',
+    });
+
+    expect(comment.approved).toBe(false);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/comments');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({
+      collection: 'posts',
+      entryId: 'p1',
+      authorName: 'Alice',
+      body: 'Hi',
+    });
+  });
 });
