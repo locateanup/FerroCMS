@@ -6,6 +6,12 @@ export interface User {
   email: string;
   name: string | null;
   role: Role;
+  totpEnabled: boolean;
+}
+
+export interface LoginChallenge {
+  requiresTotp: true;
+  challengeToken: string;
 }
 
 export interface SelectOption {

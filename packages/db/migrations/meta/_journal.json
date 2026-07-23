@@ -15,6 +15,13 @@
       "when": 1784781148029,
       "tag": "0001_military_colleen_wing",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1784782628508,
+      "tag": "0002_peaceful_stingray",
+      "breakpoints": true
     }
   ]
 }

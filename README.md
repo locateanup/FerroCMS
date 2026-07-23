@@ -111,7 +111,9 @@ Legend: ✅ implemented · 🚧 planned
   server-side (unreadable fields are stripped from responses, unwritable ones from writes)
 - ✅ Rate limiting on login/registration, PBKDF2 at 600k iterations (current OWASP guidance), and
   strict security response headers (CSP, `nosniff`, `X-Frame-Options`, …)
-- 🚧 SSO / OAuth, 2FA
+- ✅ TOTP-based two-factor authentication — self-contained (no external OAuth app/account needed),
+  works with any standard authenticator app; a `Security` page in the admin to enable/disable it
+- 🚧 SSO / OAuth (needs a real provider app registration to build against honestly)
 
 ### SEO
 

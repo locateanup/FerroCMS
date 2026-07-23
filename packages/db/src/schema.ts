@@ -23,6 +23,9 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash').notNull(),
   name: text('name'),
   role: text('role', { enum: ROLES }).notNull().default('author'),
+  /** Base32 TOTP secret. Set as soon as setup starts; only trusted for login once totpEnabled. */
+  totpSecret: text('totp_secret'),
+  totpEnabled: integer('totp_enabled', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
 });

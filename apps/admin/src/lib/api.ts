@@ -3,6 +3,7 @@ import type {
   Entry,
   EntryStatus,
   ListResult,
+  LoginChallenge,
   MediaItem,
   Revision,
   User,
@@ -52,13 +53,34 @@ export const api = {
 
   me: () => req<User>('/api/auth/me'),
   login: (email: string, password: string) =>
-    req<User>('/api/auth/login', { method: 'POST', body: JSON.stringify({ email, password }) }),
+    req<User | LoginChallenge>('/api/auth/login', {
+      method: 'POST',
+      body: JSON.stringify({ email, password }),
+    }),
+  completeTotpLogin: (challengeToken: string, token: string) =>
+    req<User>('/api/auth/login/2fa', {
+      method: 'POST',
+      body: JSON.stringify({ challengeToken, token }),
+    }),
   register: (email: string, password: string, name?: string) =>
     req<User>('/api/auth/register', {
       method: 'POST',
       body: JSON.stringify({ email, password, name }),
     }),
   logout: () => req<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
+
+  setup2fa: () =>
+    req<{ secret: string; otpauthUrl: string }>('/api/auth/2fa/setup', { method: 'POST' }),
+  verify2fa: (token: string) =>
+    req<{ enabled: true }>('/api/auth/2fa/verify', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
+  disable2fa: (token: string) =>
+    req<{ enabled: false }>('/api/auth/2fa/disable', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    }),
 
   collections: () => req<{ items: CollectionSchema[] }>('/api/collections'),
 

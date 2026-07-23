@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/DashboardPage.js';
 import { CollectionListPage } from './pages/CollectionListPage.js';
 import { EntryEditorPage } from './pages/EntryEditorPage.js';
 import { MediaPage } from './pages/MediaPage.js';
+import { SecurityPage } from './pages/SecurityPage.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -30,6 +31,7 @@ export function App() {
         <Route path="/collections/:slug/new" element={<EntryEditorPage />} />
         <Route path="/collections/:slug/:id" element={<EntryEditorPage />} />
         <Route path="/media" element={<MediaPage />} />
+        <Route path="/security" element={<SecurityPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

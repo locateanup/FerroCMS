@@ -57,6 +57,12 @@ export function Layout({ children }: { children: ReactNode }) {
         )}
 
         <div className="spacer" />
+        <NavLink
+          to="/security"
+          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+        >
+          <span>Security</span>
+        </NavLink>
         <div className="user-chip">
           <div className="avatar">{user ? initials(user.name, user.email) : '?'}</div>
           <div style={{ lineHeight: 1.2, flex: 1 }}>

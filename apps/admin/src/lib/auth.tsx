@@ -1,16 +1,23 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { api, ApiError } from './api.js';
-import type { User } from './types.js';
+import type { LoginChallenge, User } from './types.js';
 
 interface AuthState {
   user: User | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  /** Resolves to the logged-in user, or a challenge if the account has 2FA enabled. */
+  login: (email: string, password: string) => Promise<User | LoginChallenge>;
+  completeTotpLogin: (challengeToken: string, token: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
+  refresh: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
+
+function isChallenge(result: User | LoginChallenge): result is LoginChallenge {
+  return 'requiresTotp' in result;
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -30,12 +37,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       user,
       loading,
-      login: async (email, password) => setUser(await api.login(email, password)),
+      login: async (email, password) => {
+        const result = await api.login(email, password);
+        if (!isChallenge(result)) setUser(result);
+        return result;
+      },
+      completeTotpLogin: async (challengeToken, token) => {
+        setUser(await api.completeTotpLogin(challengeToken, token));
+      },
       register: async (email, password, name) => setUser(await api.register(email, password, name)),
       logout: async () => {
         await api.logout();
         setUser(null);
       },
+      refresh: async () => setUser(await api.me()),
     }),
     [user, loading],
   );
