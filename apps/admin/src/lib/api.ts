@@ -80,11 +80,15 @@ export const api = {
     req<Entry>(`/api/${slug}/${id}`, { method: 'PATCH', body: JSON.stringify({ data, status }) }),
   deleteEntry: (slug: string, id: string) => req<void>(`/api/${slug}/${id}`, { method: 'DELETE' }),
 
-  listMedia: () => req<{ items: MediaItem[] }>('/api/media'),
-  uploadMedia: (file: File, alt?: string) => {
+  listMedia: (folder?: string) =>
+    req<{ items: MediaItem[] }>(
+      `/api/media${folder ? `?folder=${encodeURIComponent(folder)}` : ''}`,
+    ),
+  uploadMedia: (file: File, opts: { alt?: string; folder?: string } = {}) => {
     const form = new FormData();
     form.set('file', file);
-    if (alt) form.set('alt', alt);
+    if (opts.alt) form.set('alt', opts.alt);
+    if (opts.folder) form.set('folder', opts.folder);
     return req<MediaItem>('/api/media', { method: 'POST', body: form });
   },
   deleteMedia: (id: string) => req<void>(`/api/media/${id}`, { method: 'DELETE' }),

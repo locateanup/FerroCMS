@@ -85,20 +85,28 @@ export const revisions = sqliteTable(
   }),
 );
 
-export const media = sqliteTable('media', {
-  id: text('id')
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
-  key: text('key').notNull().unique(),
-  filename: text('filename').notNull(),
-  mimeType: text('mime_type').notNull(),
-  size: integer('size').notNull(),
-  width: integer('width'),
-  height: integer('height'),
-  alt: text('alt'),
-  uploadedById: text('uploaded_by_id').references(() => users.id, { onDelete: 'set null' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
-});
+export const media = sqliteTable(
+  'media',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    key: text('key').notNull().unique(),
+    filename: text('filename').notNull(),
+    mimeType: text('mime_type').notNull(),
+    size: integer('size').notNull(),
+    width: integer('width'),
+    height: integer('height'),
+    alt: text('alt'),
+    /** Optional user-defined folder path, e.g. "products/2026". */
+    folder: text('folder'),
+    uploadedById: text('uploaded_by_id').references(() => users.id, { onDelete: 'set null' }),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => ({
+    folderIdx: index('media_folder_idx').on(t.folder),
+  }),
+);
 
 /** Generic key/value store with optional expiry (sessions, cache). */
 export const kv = sqliteTable(

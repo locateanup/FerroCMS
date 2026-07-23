@@ -13,23 +13,26 @@ export function MediaPage() {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [folderFilter, setFolderFilter] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
-  function refresh() {
+  function refresh(folder = folderFilter) {
     setLoading(true);
     api
-      .listMedia()
+      .listMedia(folder || undefined)
       .then((r) => setItems(r.items))
       .finally(() => setLoading(false));
   }
 
-  useEffect(refresh, []);
+  useEffect(() => refresh(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const folders = Array.from(new Set(items.map((i) => i.folder).filter(Boolean))) as string[];
 
   async function upload(file: File) {
     setUploading(true);
     setError(null);
     try {
-      await api.uploadMedia(file);
+      await api.uploadMedia(file, { folder: folderFilter || undefined });
       refresh();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Upload failed.');
@@ -68,6 +71,32 @@ export function MediaPage() {
         </button>
       </div>
 
+      <div className="row" style={{ gap: 8, marginBottom: 14, alignItems: 'center' }}>
+        <span className="muted" style={{ fontSize: 12 }}>
+          Folder:
+        </span>
+        <select
+          style={{ width: 220 }}
+          value={folderFilter}
+          onChange={(e) => {
+            setFolderFilter(e.target.value);
+            refresh(e.target.value);
+          }}
+        >
+          <option value="">All files</option>
+          {folders.map((f) => (
+            <option key={f} value={f}>
+              {f}
+            </option>
+          ))}
+        </select>
+        {folderFilter && (
+          <span className="muted" style={{ fontSize: 12 }}>
+            New uploads will be saved into &quot;{folderFilter}&quot;.
+          </span>
+        )}
+      </div>
+
       {error && (
         <div className="error-text" style={{ marginBottom: 12 }}>
           {error}
@@ -84,6 +113,12 @@ export function MediaPage() {
             <div key={item.id} className="media-tile">
               {item.mimeType.startsWith('image/') ? (
                 <img src={api.mediaUrl(item.key)} alt={item.alt ?? item.filename} />
+              ) : item.mimeType.startsWith('video/') ? (
+                <video
+                  src={api.mediaUrl(item.key)}
+                  controls
+                  style={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }}
+                />
               ) : (
                 <div
                   style={{
@@ -102,7 +137,10 @@ export function MediaPage() {
                   {item.filename}
                 </div>
                 <div className="row" style={{ justifyContent: 'space-between', marginTop: 4 }}>
-                  <span className="muted">{formatSize(item.size)}</span>
+                  <span className="muted">
+                    {formatSize(item.size)}
+                    {item.width && item.height ? ` · ${item.width}×${item.height}` : ''}
+                  </span>
                   <button
                     className="btn btn-danger"
                     style={{ padding: '2px 6px', fontSize: 11 }}
@@ -111,6 +149,11 @@ export function MediaPage() {
                     Delete
                   </button>
                 </div>
+                {item.folder && (
+                  <div className="muted" style={{ fontSize: 11, marginTop: 2 }}>
+                    {item.folder}
+                  </div>
+                )}
               </div>
             </div>
           ))}

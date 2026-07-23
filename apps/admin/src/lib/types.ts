@@ -83,6 +83,9 @@ export interface MediaItem {
   filename: string;
   mimeType: string;
   size: number;
+  width: number | null;
+  height: number | null;
+  folder: string | null;
   alt: string | null;
   createdAt: string;
 }
