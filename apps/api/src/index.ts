@@ -25,6 +25,6 @@ const app = createApp((c) => {
 export default Object.assign(app, {
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext) {
     const db = createDb(env.DATABASE_URL, env.DATABASE_AUTH_TOKEN);
-    ctx.waitUntil(runScheduledPublish(db, configFromEnv(env)));
+    ctx.waitUntil(runScheduledPublish(db, configFromEnv(env), cfCache(), sqlKV(db)));
   },
 });

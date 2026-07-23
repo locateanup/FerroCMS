@@ -27,6 +27,7 @@ function cacheRequest(key: string): Request {
 interface WorkersCache {
   match(request: Request): Promise<Response | undefined>;
   put(request: Request, response: Response): Promise<void>;
+  delete(request: Request): Promise<boolean>;
 }
 
 /**
@@ -58,6 +59,9 @@ export function cfCache(): CacheAdapter {
         },
       });
       await workersDefaultCache().put(cacheRequest(key), response);
+    },
+    async delete(key) {
+      await workersDefaultCache().delete(cacheRequest(key));
     },
   };
 }

@@ -37,6 +37,8 @@ export interface CachedResponse {
 export interface CacheAdapter {
   get(key: string): Promise<CachedResponse | null>;
   put(key: string, value: CachedResponse, ttlSeconds: number): Promise<void>;
+  /** Evict one entry immediately — used for targeted invalidation on write. */
+  delete(key: string): Promise<void>;
 }
 
 /** String configuration, resolved from Workers vars or process.env. */

@@ -2,7 +2,8 @@ import { and, eq, lte } from 'drizzle-orm';
 import { entries, type Entry } from '@ferrocms/db';
 import type { Db } from '@ferrocms/db';
 import { sendWebhooks } from '../lib/webhooks.js';
-import type { AppConfig } from '../platform/types.js';
+import { purgeCollectionCache } from '../lib/cachePurge.js';
+import type { AppConfig, CacheAdapter, KVAdapter } from '../platform/types.js';
 
 /** Publish every `'scheduled'` entry whose `scheduledAt` has arrived. */
 export async function publishDueEntries(db: Db, now: Date = new Date()): Promise<Entry[]> {
@@ -26,14 +27,26 @@ export async function publishDueEntries(db: Db, now: Date = new Date()): Promise
 /**
  * The shared body behind the Workers Cron Trigger, the Node interval
  * scheduler, and the manual `/api/system/publish-scheduled` endpoint: publish
- * everything due, then fire the same on-publish webhook other publishes emit.
+ * everything due, purge each affected collection's public cache, then fire
+ * the same on-publish webhook other publishes emit.
  */
 export async function runScheduledPublish(
   db: Db,
   config: AppConfig,
+  cache: CacheAdapter,
+  kv: KVAdapter,
   now?: Date,
 ): Promise<number> {
   const published = await publishDueEntries(db, now);
+
+  const collectionsPublished = new Set(published.map((entry) => entry.collection));
+  await Promise.all(
+    [...collectionsPublished].map((collection) => purgeCollectionCache(cache, kv, collection)),
+  );
+  await Promise.all(
+    published.map((entry) => cache.delete(`one:${entry.collection}:${entry.id}`)),
+  );
+
   if (config.webhookUrls.length > 0) {
     await Promise.all(
       published.map((entry) =>

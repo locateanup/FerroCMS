@@ -11,6 +11,9 @@ function fakeCacheStorage() {
     async put(request: Request, response: Response) {
       store.set(request.url, response.clone());
     },
+    async delete(request: Request) {
+      return store.delete(request.url);
+    },
   };
 }
 
@@ -45,5 +48,15 @@ describe('cfCache', () => {
 
     expect((await cache.get('a'))?.body).toBe('A');
     expect((await cache.get('b'))?.body).toBe('B');
+  });
+
+  it('deletes an entry immediately', async () => {
+    vi.stubGlobal('caches', { default: fakeCacheStorage() });
+    const cache = cfCache();
+
+    await cache.put('k', { body: 'x', contentType: 'text/plain' }, 30);
+    await cache.delete('k');
+
+    expect(await cache.get('k')).toBeNull();
   });
 });

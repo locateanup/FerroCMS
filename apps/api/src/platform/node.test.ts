@@ -67,4 +67,11 @@ describe('memoryCache', () => {
     await a.put('k', { body: 'from-a', contentType: 'text/plain' }, 60);
     expect(await b.get('k')).toBeNull();
   });
+
+  it('deletes an entry immediately', async () => {
+    const cache = memoryCache();
+    await cache.put('k', { body: 'x', contentType: 'text/plain' }, 60);
+    await cache.delete('k');
+    expect(await cache.get('k')).toBeNull();
+  });
 });

@@ -17,6 +17,7 @@ import { errors } from '../lib/errors.js';
 import { background } from '../lib/background.js';
 import { sendWebhooks, type WebhookEventType } from '../lib/webhooks.js';
 import { createPreviewToken, verifyPreviewToken } from '../lib/previewToken.js';
+import { purgeCollectionCache, trackListCacheKey } from '../lib/cachePurge.js';
 import type { Entry } from '@ferrocms/db';
 import * as svc from '../services/entries.js';
 
@@ -125,8 +126,18 @@ function cachedJson(cached: { body: string; contentType: string }): Response {
   });
 }
 
-/** Serve fresh JSON, caching it in the background for public reads only. */
-function freshJson(c: Context<AppBindings>, payload: unknown, cacheKey: string | null): Response {
+/**
+ * Serve fresh JSON, caching it in the background for public reads only. List
+ * reads pass their own collection so the cache key gets recorded — see
+ * lib/cachePurge.ts — letting a write purge it immediately instead of
+ * everyone waiting out the TTL.
+ */
+function freshJson(
+  c: Context<AppBindings>,
+  payload: unknown,
+  cacheKey: string | null,
+  listCollection?: string,
+): Response {
   const body = JSON.stringify(payload);
   if (cacheKey) {
     background(
@@ -135,6 +146,9 @@ function freshJson(c: Context<AppBindings>, payload: unknown, cacheKey: string |
         .get('cache')
         .put(cacheKey, { body, contentType: 'application/json' }, PUBLIC_CACHE_TTL_SECONDS),
     );
+    if (listCollection) {
+      background(c, trackListCacheKey(c.get('kv'), listCollection, cacheKey));
+    }
   }
   return new Response(body, {
     headers: { 'content-type': 'application/json', ...(cacheKey ? { 'x-cache': 'MISS' } : {}) },
@@ -180,7 +194,7 @@ router.get('/:collection', async (c) => {
     ...entry,
     data: filterFieldsForRead(collection.fields, entry.data as Record<string, unknown>, args),
   }));
-  return freshJson(c, { ...result, items, limit, offset }, cacheKey);
+  return freshJson(c, { ...result, items, limit, offset }, cacheKey, collection.slug);
 });
 
 // Get one entry by id.
@@ -229,6 +243,7 @@ router.post('/:collection', async (c) => {
       user,
     });
     emitWebhook(c, entry, entry.status === 'published' ? 'entry.published' : 'entry.created');
+    await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
     return c.json(entry, 201);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
@@ -273,6 +288,7 @@ router.patch('/:collection/:id', async (c) => {
     });
     const justPublished = existing.status !== 'published' && entry.status === 'published';
     emitWebhook(c, entry, justPublished ? 'entry.published' : 'entry.updated');
+    await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
     return c.json(entry);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
@@ -291,6 +307,7 @@ router.delete('/:collection/:id', async (c) => {
 
   await svc.deleteEntry(c.get('db'), existing, user);
   emitWebhook(c, existing, 'entry.deleted');
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
   return c.body(null, 204);
 });
 
@@ -369,6 +386,7 @@ router.post('/:collection/:id/revisions/:revisionId/restore', async (c) => {
       user,
     });
     emitWebhook(c, entry, 'entry.updated');
+    await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
     return c.json(entry);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');

@@ -57,6 +57,9 @@ export function memoryCache(): CacheAdapter {
     async put(key, value, ttlSeconds) {
       store.set(key, { value, expiresAt: Date.now() + ttlSeconds * 1000 });
     },
+    async delete(key) {
+      store.delete(key);
+    },
   };
 }
 

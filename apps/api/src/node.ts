@@ -33,7 +33,7 @@ serve({ fetch: app.fetch, port }, (info) => {
 // in-process instead. (On Cloudflare this is a Cron Trigger; see index.ts.)
 const SCHEDULE_SWEEP_INTERVAL_MS = 60_000;
 setInterval(() => {
-  runScheduledPublish(db, config).catch((err) => {
+  runScheduledPublish(db, config, cache, kv).catch((err) => {
     console.error('Scheduled-publish sweep failed:', err);
   });
 }, SCHEDULE_SWEEP_INTERVAL_MS);

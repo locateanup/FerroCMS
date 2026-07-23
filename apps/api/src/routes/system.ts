@@ -18,7 +18,12 @@ router.post('/publish-scheduled', async (c) => {
   const auth = c.req.header('Authorization');
   if (auth !== `Bearer ${c.get('config').authSecret}`) throw errors.unauthorized();
 
-  const published = await runScheduledPublish(c.get('db'), c.get('config'));
+  const published = await runScheduledPublish(
+    c.get('db'),
+    c.get('config'),
+    c.get('cache'),
+    c.get('kv'),
+  );
   return c.json({ published });
 });
 
