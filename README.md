@@ -94,7 +94,10 @@ Legend: ✅ implemented · 🚧 planned
 ### Media
 
 - ✅ Media library backed by Cloudflare R2 (upload, browse, delete, public serving)
-- 🚧 Image transforms / responsive variants, folders, video
+- ✅ Folders (with a filter in the admin) and video uploads (mp4/webm/quicktime) with preview
+- ✅ Image dimensions captured on upload (pure-JS PNG/GIF/JPEG/WebP header parsing, no native deps)
+- 🚧 Image transforms / responsive variants (actual resizing — needs Cloudflare Images or a similar
+  service; capturing dimensions is not the same as generating resized variants)
 
 ### Users & security
 
@@ -119,8 +122,9 @@ Legend: ✅ implemented · 🚧 planned
   for a minimal example)
 - ✅ Custom field _renderers_ — swap in a different admin widget for any field type via a small
   registry (`registerFieldRenderer`), without touching `FieldInput.tsx`
-- 🚧 Plugin marketplace / package registry, wholly new field _storage_ kinds, third-party
-  integrations (GA4, ImageKit, Algolia, Stripe, …)
+- ✅ Custom field _storage_ types — `registerFieldType()` lets a plugin add a wholly new field kind
+  with its own Zod validation, via `defineCustomField()`, no core changes needed
+- 🚧 Plugin marketplace / package registry, third-party integrations (GA4, ImageKit, Algolia, Stripe, …)
 
 ## How it compares
 

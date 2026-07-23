@@ -7,7 +7,27 @@ import { z } from 'zod';
 import type { Field } from './fields.js';
 import { richTextValueSchema } from './richtext.js';
 
+export type FieldSchemaFactory = (field: Field) => z.ZodTypeAny;
+
+const customFieldTypes = new Map<string, FieldSchemaFactory>();
+
+/**
+ * Register validation for a custom field type (see `defineCustomField` in
+ * customField.ts). A plugin can add a genuinely new field kind — with its
+ * own Zod schema — without any change to core.
+ */
+export function registerFieldType(type: string, schema: FieldSchemaFactory): void {
+  customFieldTypes.set(type, schema);
+}
+
+export function unregisterFieldType(type: string): void {
+  customFieldTypes.delete(type);
+}
+
 function fieldSchema(field: Field): z.ZodTypeAny {
+  const custom = customFieldTypes.get(field.type);
+  if (custom) return custom(field);
+
   switch (field.type) {
     case 'text':
     case 'textarea':
@@ -55,6 +75,13 @@ function fieldSchema(field: Field): z.ZodTypeAny {
       const ref = z.string();
       return field.many === false ? ref : z.array(ref);
     }
+    default:
+      // Reached only for a custom field type (see customField.ts) that was
+      // never registered with registerFieldType() — fail loudly rather than
+      // silently accepting anything.
+      throw new Error(
+        `Unknown field type "${(field as Field).type}". Register it with registerFieldType() before use.`,
+      );
   }
 }
 

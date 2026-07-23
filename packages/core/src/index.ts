@@ -9,3 +9,4 @@ export * from './richtext.js';
 export * from './taxonomy.js';
 export * from './fieldAccess.js';
 export * from './plugin.js';
+export * from './customField.js';
