@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.js';
 import { useCollections } from '../lib/collections.js';
+import { useGlobals } from '../lib/globals.js';
 
 function initials(name: string | null, email: string): string {
   if (name) {
@@ -14,6 +15,7 @@ function initials(name: string | null, email: string): string {
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const { collections } = useCollections();
+  const { globals } = useGlobals();
   const navigate = useNavigate();
 
   const content = collections.filter((c) => !c.taxonomyConfig.enabled);
@@ -62,6 +64,21 @@ export function Layout({ children }: { children: ReactNode }) {
                 className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
               >
                 <span>{c.labels.plural}</span>
+              </NavLink>
+            ))}
+          </>
+        )}
+
+        {globals.length > 0 && (
+          <>
+            <div className="section-label">Globals</div>
+            {globals.map((g) => (
+              <NavLink
+                key={g.slug}
+                to={`/globals/${g.slug}`}
+                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              >
+                <span>{g.label}</span>
               </NavLink>
             ))}
           </>

@@ -79,6 +79,8 @@ export interface FerroCmsClient {
   ): Promise<FerroCmsEntry<T> | null>;
   /** Build a public URL for a media object key. */
   mediaUrl(key: string): string;
+  /** Fetch a global (site settings, header/footer nav, ...) — always one document per slug. */
+  getGlobal<T = Record<string, unknown>>(slug: string): Promise<T>;
 }
 
 export * from './seo.js';
@@ -146,6 +148,10 @@ export function createClient(options: ClientOptions): FerroCmsClient {
     },
     mediaUrl(key) {
       return `${base}/api/media/file/${key}`;
+    },
+    async getGlobal<T = Record<string, unknown>>(slug: string) {
+      const result = await request<{ data: T }>(`/api/globals/${encodeURIComponent(slug)}`);
+      return result.data;
     },
   };
 }

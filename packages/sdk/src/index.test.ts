@@ -89,4 +89,21 @@ describe('createClient', () => {
     expect(await client.preview('posts', 'abc', 'bad-token')).toBeNull();
     expect(await client.preview('posts', 'missing', 'tok')).toBeNull();
   });
+
+  it('getGlobal fetches the right URL and unwraps to just the data', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: '1',
+        collection: 'site-settings',
+        data: { siteName: 'FerroCMS Demo' },
+      }),
+    );
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const settings = await client.getGlobal<{ siteName: string }>('site-settings');
+
+    expect(settings.siteName).toBe('FerroCMS Demo');
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/globals/site-settings');
+  });
 });

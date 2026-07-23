@@ -24,6 +24,19 @@ export interface AdminUser {
   createdAt: string;
 }
 
+export interface GlobalSchema {
+  slug: string;
+  label: string;
+  fields: Field[];
+}
+
+export interface GlobalEntry {
+  id: string;
+  collection: string;
+  data: Record<string, unknown>;
+  updatedAt: string;
+}
+
 export interface SearchHit {
   entryId: string;
   collection: string;

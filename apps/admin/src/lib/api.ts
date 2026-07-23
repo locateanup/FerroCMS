@@ -4,6 +4,8 @@ import type {
   CollectionSchema,
   Entry,
   EntryStatus,
+  GlobalEntry,
+  GlobalSchema,
   ListResult,
   LoginChallenge,
   MediaItem,
@@ -152,6 +154,11 @@ export const api = {
     req<AdminUser>(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 
   search: (q: string) => req<{ items: SearchHit[] }>(`/api/search?q=${encodeURIComponent(q)}`),
+
+  globals: () => req<{ items: GlobalSchema[] }>('/api/globals'),
+  getGlobal: (slug: string) => req<GlobalEntry>(`/api/globals/${slug}`),
+  updateGlobal: (slug: string, data: Record<string, unknown>) =>
+    req<GlobalEntry>(`/api/globals/${slug}`, { method: 'PATCH', body: JSON.stringify({ data }) }),
 
   listAuditLog: (params: { limit?: number; offset?: number } = {}) => {
     const q = new URLSearchParams();
