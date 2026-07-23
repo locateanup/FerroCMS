@@ -106,6 +106,7 @@ router.post('/login', async (c) => {
   const [user] = await db.select().from(users).where(eq(users.email, body.email)).limit(1);
   const valid = user ? await verifyPassword(body.password, user.passwordHash) : false;
   if (!user || !valid) throw errors.unauthorized('Invalid email or password.');
+  if (!user.active) throw errors.unauthorized('This account has been deactivated.');
 
   if (user.totpEnabled) {
     const challengeToken = randomToken();
@@ -145,6 +146,7 @@ router.post('/login/2fa', async (c) => {
   const db = c.get('db');
   const [user] = await db.select().from(users).where(eq(users.id, userId)).limit(1);
   if (!user || !user.totpEnabled || !user.totpSecret) throw errors.unauthorized();
+  if (!user.active) throw errors.unauthorized('This account has been deactivated.');
 
   if (!(await verifyTotp(user.totpSecret, body.token))) {
     throw errors.unauthorized('Invalid code.');

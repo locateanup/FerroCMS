@@ -1,4 +1,5 @@
 import type {
+  AdminUser,
   CollectionSchema,
   Entry,
   EntryStatus,
@@ -6,6 +7,7 @@ import type {
   LoginChallenge,
   MediaItem,
   Revision,
+  Role,
   User,
 } from './types.js';
 
@@ -120,4 +122,13 @@ export const api = {
     req<{ items: Revision[] }>(`/api/${slug}/${id}/revisions`),
   restoreRevision: (slug: string, id: string, revisionId: string) =>
     req<Entry>(`/api/${slug}/${id}/revisions/${revisionId}/restore`, { method: 'POST' }),
+
+  listUsers: () => req<{ items: AdminUser[] }>('/api/users'),
+  createUser: (email: string, password: string, role: Role, name?: string) =>
+    req<AdminUser>('/api/users', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, role, name }),
+    }),
+  updateUser: (id: string, patch: { name?: string; role?: Role; active?: boolean }) =>
+    req<AdminUser>(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
 };

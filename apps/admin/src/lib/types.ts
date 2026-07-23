@@ -14,6 +14,16 @@ export interface LoginChallenge {
   challengeToken: string;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  active: boolean;
+  totpEnabled: boolean;
+  createdAt: string;
+}
+
 export interface SelectOption {
   label: string;
   value: string;

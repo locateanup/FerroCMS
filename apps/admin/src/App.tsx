@@ -7,6 +7,7 @@ import { CollectionListPage } from './pages/CollectionListPage.js';
 import { EntryEditorPage } from './pages/EntryEditorPage.js';
 import { MediaPage } from './pages/MediaPage.js';
 import { SecurityPage } from './pages/SecurityPage.js';
+import { UsersPage } from './pages/UsersPage.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -32,6 +33,7 @@ export function App() {
         <Route path="/collections/:slug/:id" element={<EntryEditorPage />} />
         <Route path="/media" element={<MediaPage />} />
         <Route path="/security" element={<SecurityPage />} />
+        {user.role === 'admin' && <Route path="/users" element={<UsersPage />} />}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>
