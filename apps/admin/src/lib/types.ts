@@ -79,6 +79,13 @@ export interface SelectOption {
   value: string;
 }
 
+export interface FieldCondition {
+  field: string;
+  equals?: unknown;
+  notEquals?: unknown;
+  truthy?: boolean;
+}
+
 export interface Field {
   name: string;
   type:
@@ -93,7 +100,9 @@ export interface Field {
     | 'richText'
     | 'relation'
     | 'media'
-    | 'taxonomy';
+    | 'taxonomy'
+    | 'group'
+    | 'repeater';
   label?: string;
   required?: boolean;
   description?: string;
@@ -103,12 +112,17 @@ export interface Field {
   relationTo?: string;
   taxonomy?: string;
   localized?: boolean;
+  /** Sub-fields for `group`/`repeater`. */
+  fields?: Field[];
+  minRows?: number;
+  maxRows?: number;
   admin?: {
     placeholder?: string;
     hidden?: boolean;
     width?: 'full' | 'half';
     help?: string;
     group?: string;
+    condition?: FieldCondition;
   };
 }
 

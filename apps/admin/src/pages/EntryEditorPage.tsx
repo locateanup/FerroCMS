@@ -181,7 +181,7 @@ export function EntryEditorPage() {
                       {group}
                     </div>
                   )}
-                  <FieldInput field={field} value={fieldValue} onChange={handleChange} />
+                  <FieldInput field={field} value={fieldValue} onChange={handleChange} formData={data} />
                 </div>
               );
             })

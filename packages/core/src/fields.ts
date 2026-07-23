@@ -20,7 +20,26 @@ export type FieldType =
   | 'richText'
   | 'relation'
   | 'media'
-  | 'taxonomy';
+  | 'taxonomy'
+  | 'group'
+  | 'repeater';
+
+/**
+ * A declarative show/hide rule for a field's admin control, evaluated against
+ * the current form data (see `evaluateCondition`). Declarative (not a
+ * function) because field schemas are sent to the admin as JSON over
+ * `/api/collections` — a closure couldn't survive that trip.
+ */
+export interface FieldCondition {
+  /** Name of a sibling field whose value gates this one's visibility. */
+  field: string;
+  /** Show only when the named field's value strictly equals this. */
+  equals?: unknown;
+  /** Show only when the named field's value does not strictly equal this. */
+  notEquals?: unknown;
+  /** Show only when the named field's value is (or isn't) truthy. */
+  truthy?: boolean;
+}
 
 export interface FieldAdminOptions {
   /** Placeholder shown in the admin input. */
@@ -33,6 +52,20 @@ export interface FieldAdminOptions {
   help?: string;
   /** Group label — fields sharing a group render together in the form. */
   group?: string;
+  /** Show this field's control only when the condition holds. See `FieldCondition`. */
+  condition?: FieldCondition;
+}
+
+/** Evaluate a `FieldCondition` against a form's current data. */
+export function evaluateCondition(
+  condition: FieldCondition,
+  data: Record<string, unknown>,
+): boolean {
+  const value = data[condition.field];
+  if (condition.equals !== undefined) return value === condition.equals;
+  if (condition.notEquals !== undefined) return value !== condition.notEquals;
+  if (condition.truthy !== undefined) return Boolean(value) === condition.truthy;
+  return true;
 }
 
 interface BaseField {
@@ -134,6 +167,20 @@ export interface TaxonomyField extends BaseField {
   many?: boolean;
 }
 
+/** A nested object of fields — stored as `{ [name]: {...sub-field values} }`. */
+export interface GroupField extends BaseField {
+  type: 'group';
+  fields: Field[];
+}
+
+/** A repeatable list of the same sub-field set — stored as an array of objects. */
+export interface RepeaterField extends BaseField {
+  type: 'repeater';
+  fields: Field[];
+  minRows?: number;
+  maxRows?: number;
+}
+
 export type Field =
   | TextField
   | SlugField
@@ -145,7 +192,38 @@ export type Field =
   | RichTextField
   | RelationField
   | MediaField
-  | TaxonomyField;
+  | TaxonomyField
+  | GroupField
+  | RepeaterField;
+
+/**
+ * Validate a (possibly nested) field list: every field has a name, names are
+ * unique within this list, relation/taxonomy fields declare their target, and
+ * group/repeater sub-fields get the same checks recursively. Does not check
+ * reserved top-level column names — only a collection's own direct fields
+ * need that (see `defineCollection`), since a field nested inside a group
+ * lives at `data.myGroup.name`, not a real column.
+ */
+export function validateFieldList(fields: Field[], label: string): void {
+  if (fields.length === 0) {
+    throw new Error(`${label} must declare at least one field.`);
+  }
+  const seen = new Set<string>();
+  for (const field of fields) {
+    if (!field.name) throw new Error(`${label} has a field with no name.`);
+    if (seen.has(field.name)) throw new Error(`${label} has duplicate field "${field.name}".`);
+    seen.add(field.name);
+    if (field.type === 'relation' && !field.relationTo) {
+      throw new Error(`${label} relation field "${field.name}" is missing "relationTo".`);
+    }
+    if (field.type === 'taxonomy' && !field.taxonomy) {
+      throw new Error(`${label} taxonomy field "${field.name}" is missing "taxonomy".`);
+    }
+    if (field.type === 'group' || field.type === 'repeater') {
+      validateFieldList(field.fields, `${label} > "${field.name}"`);
+    }
+  }
+}
 
 /** Derive a default human label from a field/collection machine name. */
 export function humanize(name: string): string {

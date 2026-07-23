@@ -80,6 +80,7 @@ export function GlobalEditorPage() {
               key={field.name}
               field={field}
               value={data[field.name]}
+              formData={data}
               onChange={(v) => setField(field.name, v)}
             />
           ))

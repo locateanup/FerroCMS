@@ -7,7 +7,7 @@
  * accidentally list/create/delete against) a global.
  */
 
-import { humanize, type Field } from './fields.js';
+import { humanize, validateFieldList, type Field } from './fields.js';
 import { anyone, atLeast, type AccessFn } from './access.js';
 
 export interface GlobalAccess {
@@ -57,6 +57,9 @@ export function defineGlobal(config: GlobalConfig): ResolvedGlobal {
     }
     if (field.type === 'taxonomy' && !field.taxonomy) {
       throw new Error(`Global "${config.slug}" taxonomy field "${field.name}" is missing "taxonomy".`);
+    }
+    if (field.type === 'group' || field.type === 'repeater') {
+      validateFieldList(field.fields, `Global "${config.slug}" > "${field.name}"`);
     }
   }
 

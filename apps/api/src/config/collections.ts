@@ -53,6 +53,28 @@ export const posts = defineCollection({
       defaultValue: false,
       access: { update: atLeast('editor') },
     },
+    // Conditional field: only shown (and only required) once "Featured" is checked.
+    {
+      name: 'featuredNote',
+      type: 'text',
+      maxLength: 200,
+      required: true,
+      admin: {
+        condition: { field: 'featured', truthy: true },
+        help: 'Shown once "Featured" is checked — why this post is featured.',
+      },
+    },
+    // Repeater: a variable-length list of sub-fields, stored as an array.
+    {
+      name: 'relatedLinks',
+      type: 'repeater',
+      maxRows: 5,
+      admin: { group: 'Related' },
+      fields: [
+        { name: 'label', type: 'text', required: true, maxLength: 80 },
+        { name: 'url', type: 'text', required: true, maxLength: 500 },
+      ],
+    },
   ],
 });
 

@@ -2,7 +2,7 @@
  * Content type ("collection") definitions — config as code.
  */
 
-import { humanize, type Field } from './fields.js';
+import { humanize, validateFieldList, type Field } from './fields.js';
 import type { CollectionAccess } from './access.js';
 import type { CollectionHooks } from './hooks.js';
 import { seoFields } from './seo.js';
@@ -137,6 +137,9 @@ export function defineCollection(config: CollectionConfig): ResolvedCollection {
       throw new Error(
         `Collection "${config.slug}" taxonomy field "${field.name}" is missing "taxonomy".`,
       );
+    }
+    if (field.type === 'group' || field.type === 'repeater') {
+      validateFieldList(field.fields, `Collection "${config.slug}" > "${field.name}"`);
     }
   }
 
