@@ -146,6 +146,15 @@ export const api = {
   restoreRevision: (slug: string, id: string, revisionId: string) =>
     req<Entry>(`/api/${slug}/${id}/revisions/${revisionId}/restore`, { method: 'POST' }),
 
+  submitForReview: (slug: string, id: string) =>
+    req<Entry>(`/api/${slug}/${id}/submit-for-review`, { method: 'POST' }),
+  reviewEntry: (slug: string, id: string, approved: boolean, note?: string) =>
+    req<Entry>(`/api/${slug}/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ approved, note }),
+    }),
+  listReviewQueue: () => req<{ items: Entry[] }>('/api/review/queue'),
+
   listUsers: () => req<{ items: AdminUser[] }>('/api/users'),
   createUser: (email: string, password: string, role: Role, name?: string) =>
     req<AdminUser>('/api/users', {

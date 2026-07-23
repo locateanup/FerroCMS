@@ -13,6 +13,7 @@ import { SearchPage } from './pages/SearchPage.js';
 import { GlobalEditorPage } from './pages/GlobalEditorPage.js';
 import { RedirectsPage } from './pages/RedirectsPage.js';
 import { CommentsPage } from './pages/CommentsPage.js';
+import { ReviewQueuePage } from './pages/ReviewQueuePage.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -44,6 +45,9 @@ export function App() {
         )}
         {(user.role === 'admin' || user.role === 'editor') && (
           <Route path="/comments" element={<CommentsPage />} />
+        )}
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/review" element={<ReviewQueuePage />} />
         )}
         <Route path="/security" element={<SecurityPage />} />
         {user.role === 'admin' && <Route path="/users" element={<UsersPage />} />}

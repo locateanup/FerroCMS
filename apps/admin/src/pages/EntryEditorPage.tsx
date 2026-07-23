@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { api, ApiError } from '../lib/api.js';
+import { useAuth } from '../lib/auth.js';
 import { useCollection } from '../lib/collections.js';
 import { FieldInput } from '../components/FieldInput.js';
 import { RevisionHistory } from '../components/RevisionHistory.js';
-import type { EntryStatus } from '../lib/types.js';
+import type { EntryStatus, ReviewStatus } from '../lib/types.js';
 
 /** ISO string -> the local-time value a `datetime-local` input expects. */
 function toLocalInputValue(iso: string): string {
@@ -17,11 +18,17 @@ export function EntryEditorPage() {
   const { slug, id } = useParams<{ slug: string; id?: string }>();
   const collection = useCollection(slug);
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const canReview = user?.role === 'admin' || user?.role === 'editor';
 
   const isNew = !id || id === 'new';
   const [data, setData] = useState<Record<string, unknown>>({});
   const [status, setStatus] = useState<EntryStatus>('draft');
   const [scheduledAt, setScheduledAt] = useState<string | null>(null);
+  const [reviewStatus, setReviewStatus] = useState<ReviewStatus>(null);
+  const [reviewNote, setReviewNote] = useState<string | null>(null);
+  const [rejectNote, setRejectNote] = useState('');
+  const [reviewBusy, setReviewBusy] = useState(false);
   // The datetime-local input's own draft value, kept separate from the saved
   // `scheduledAt` so picking a date doesn't schedule anything until you click.
   const [scheduleInput, setScheduleInput] = useState('');
@@ -45,6 +52,8 @@ export function EntryEditorPage() {
         setData(entry.data);
         setStatus(entry.status);
         setScheduledAt(entry.scheduledAt);
+        setReviewStatus(entry.reviewStatus);
+        setReviewNote(entry.reviewNote);
         if (entry.scheduledAt) setScheduleInput(toLocalInputValue(entry.scheduledAt));
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load.'))
@@ -86,6 +95,38 @@ export function EntryEditorPage() {
   function schedule() {
     if (!scheduleInput) return;
     save('scheduled', new Date(scheduleInput).toISOString());
+  }
+
+  async function submitForReview() {
+    if (isNew || !id) return;
+    setReviewBusy(true);
+    setError(null);
+    try {
+      const entry = await api.submitForReview(slug!, id);
+      setReviewStatus(entry.reviewStatus);
+      setReviewNote(entry.reviewNote);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to submit for review.');
+    } finally {
+      setReviewBusy(false);
+    }
+  }
+
+  async function decideReview(approved: boolean) {
+    if (isNew || !id) return;
+    setReviewBusy(true);
+    setError(null);
+    try {
+      const entry = await api.reviewEntry(slug!, id, approved, approved ? undefined : rejectNote);
+      setReviewStatus(entry.reviewStatus);
+      setReviewNote(entry.reviewNote);
+      setStatus(entry.status);
+      setRejectNote('');
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Failed to record the review decision.');
+    } finally {
+      setReviewBusy(false);
+    }
   }
 
   async function remove() {
@@ -239,6 +280,67 @@ export function EntryEditorPage() {
           >
             Schedule
           </button>
+
+          {!isNew && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+              <label>Editorial review</label>
+              {reviewStatus && (
+                <div style={{ marginBottom: 8 }}>
+                  <span
+                    className={`badge ${
+                      reviewStatus === 'approved'
+                        ? 'badge-published'
+                        : reviewStatus === 'rejected'
+                          ? 'badge-archived'
+                          : 'badge-draft'
+                    }`}
+                  >
+                    {reviewStatus}
+                  </span>
+                  {reviewNote && (
+                    <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>
+                      &quot;{reviewNote}&quot;
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {reviewStatus === 'pending' && canReview ? (
+                <>
+                  <textarea
+                    placeholder="Note for the author (only sent if you reject)"
+                    rows={2}
+                    value={rejectNote}
+                    onChange={(e) => setRejectNote(e.target.value)}
+                    style={{ marginBottom: 8 }}
+                  />
+                  <div className="row" style={{ gap: 8 }}>
+                    <button
+                      className="btn btn-primary"
+                      disabled={reviewBusy}
+                      onClick={() => decideReview(true)}
+                    >
+                      Approve &amp; publish
+                    </button>
+                    <button className="btn btn-danger" disabled={reviewBusy} onClick={() => decideReview(false)}>
+                      Reject
+                    </button>
+                  </div>
+                </>
+              ) : (
+                status !== 'published' && (
+                  <button
+                    className="btn"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    disabled={reviewBusy || reviewStatus === 'pending'}
+                    onClick={submitForReview}
+                  >
+                    {reviewStatus === 'pending' ? 'Awaiting review…' : 'Submit for review'}
+                  </button>
+                )
+              )}
+            </div>
+          )}
 
           {!isNew && id && (
             <RevisionHistory

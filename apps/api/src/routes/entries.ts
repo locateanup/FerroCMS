@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import {
+  atLeast,
   ENTRY_STATUSES,
   filterFieldsForRead,
   filterFieldsForWrite,
@@ -20,6 +21,7 @@ import { createPreviewToken, verifyPreviewToken } from '../lib/previewToken.js';
 import { purgeCollectionCache, trackListCacheKey } from '../lib/cachePurge.js';
 import type { Entry } from '@ferrocms/db';
 import * as svc from '../services/entries.js';
+import * as reviewSvc from '../services/review.js';
 
 const router = new Hono<AppBindings>();
 
@@ -392,6 +394,49 @@ router.post('/:collection/:id/revisions/:revisionId/restore', async (c) => {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
     throw err;
   }
+});
+
+const reviewDecisionSchema = z.object({
+  approved: z.boolean(),
+  note: z.string().trim().max(2000).optional(),
+});
+
+// Editorial workflow, step 1: an author submits their own draft for review.
+// Requires the same "update" access as editing the entry itself — anyone who
+// can work on it can ask for it to be reviewed.
+router.post('/:collection/:id/submit-for-review', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, resolveAccess(collection.access).update, id);
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+
+  const entry = await reviewSvc.submitForReview(c.get('db'), existing, user);
+  return c.json(entry);
+});
+
+// Editorial workflow, step 2: an editor+ approves (which publishes it) or
+// rejects it (with a note, back to the author). Review authority is a fixed
+// role check, not per-collection configurable, to keep the workflow simple.
+router.post('/:collection/:id/review', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, atLeast('editor'));
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+  if (existing.reviewStatus !== 'pending') {
+    throw errors.badRequest('This entry is not awaiting review.');
+  }
+
+  const body = await parseBody(c, reviewDecisionSchema);
+  const entry = await reviewSvc.reviewEntry(c.get('db'), existing, body, user);
+  if (body.approved) {
+    emitWebhook(c, entry, 'entry.published');
+    await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
+  }
+  return c.json(entry);
 });
 
 export { router as entriesRouter };

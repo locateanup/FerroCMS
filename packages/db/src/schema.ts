@@ -12,6 +12,7 @@ import { index, integer, sqliteTable, text, uniqueIndex } from 'drizzle-orm/sqli
 
 const ROLES = ['admin', 'editor', 'author', 'viewer'] as const;
 const STATUSES = ['draft', 'published', 'scheduled', 'archived'] as const;
+const REVIEW_STATUSES = ['pending', 'approved', 'rejected'] as const;
 
 const now = sql`(unixepoch())`;
 
@@ -60,6 +61,17 @@ export const entries = sqliteTable(
     publishedAt: integer('published_at', { mode: 'timestamp' }),
     /** When status='scheduled', the sweep (Cron Trigger or /system/publish-scheduled) publishes at this time. */
     scheduledAt: integer('scheduled_at', { mode: 'timestamp' }),
+    /**
+     * Editorial workflow — orthogonal to `status` (draft/published/...): an
+     * author can submit a draft for review, and an editor+ approves (which
+     * publishes it) or rejects it (with a note, back to the author) without
+     * that ever becoming a `status` value itself.
+     */
+    reviewStatus: text('review_status', { enum: REVIEW_STATUSES }),
+    reviewNote: text('review_note'),
+    reviewRequestedAt: integer('review_requested_at', { mode: 'timestamp' }),
+    reviewedAt: integer('reviewed_at', { mode: 'timestamp' }),
+    reviewedById: text('reviewed_by_id').references(() => users.id, { onDelete: 'set null' }),
     createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
     updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
   },
@@ -70,6 +82,7 @@ export const entries = sqliteTable(
       .where(sql`${t.slug} is not null`),
     publishedAtIdx: index('entries_published_at_idx').on(t.publishedAt),
     scheduledAtIdx: index('entries_scheduled_at_idx').on(t.status, t.scheduledAt),
+    reviewStatusIdx: index('entries_review_status_idx').on(t.reviewStatus),
   }),
 );
 

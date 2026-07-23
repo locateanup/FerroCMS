@@ -138,6 +138,8 @@ export interface CollectionSchema {
   defaultLocale?: string;
 }
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | null;
+
 export interface Entry {
   id: string;
   collection: string;
@@ -147,6 +149,9 @@ export interface Entry {
   authorId: string | null;
   publishedAt: string | null;
   scheduledAt: string | null;
+  reviewStatus: ReviewStatus;
+  reviewNote: string | null;
+  reviewRequestedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
