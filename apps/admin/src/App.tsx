@@ -14,6 +14,7 @@ import { GlobalEditorPage } from './pages/GlobalEditorPage.js';
 import { RedirectsPage } from './pages/RedirectsPage.js';
 import { CommentsPage } from './pages/CommentsPage.js';
 import { ReviewQueuePage } from './pages/ReviewQueuePage.js';
+import { CalendarPage } from './pages/CalendarPage.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -38,6 +39,7 @@ export function App() {
         <Route path="/collections/:slug/new" element={<EntryEditorPage />} />
         <Route path="/collections/:slug/:id" element={<EntryEditorPage />} />
         <Route path="/media" element={<MediaPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/globals/:slug" element={<GlobalEditorPage />} />
         {(user.role === 'admin' || user.role === 'editor') && (

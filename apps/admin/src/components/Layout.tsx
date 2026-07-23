@@ -53,6 +53,9 @@ export function Layout({ children }: { children: ReactNode }) {
         <NavLink to="/media" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
           <span>Media</span>
         </NavLink>
+        <NavLink to="/calendar" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+          <span>Calendar</span>
+        </NavLink>
 
         {taxonomies.length > 0 && (
           <>

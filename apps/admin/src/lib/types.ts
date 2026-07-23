@@ -57,6 +57,14 @@ export interface Redirect {
   updatedAt: string;
 }
 
+export interface CalendarItem {
+  id: string;
+  collection: string;
+  status: EntryStatus;
+  title: string;
+  date: string;
+}
+
 export interface SearchHit {
   entryId: string;
   collection: string;

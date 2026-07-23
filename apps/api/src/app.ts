@@ -18,6 +18,7 @@ import { globalsRouter } from './routes/globals.js';
 import { redirectsRouter } from './routes/redirects.js';
 import { commentsRouter } from './routes/comments.js';
 import { reviewRouter } from './routes/review.js';
+import { calendarRouter } from './routes/calendar.js';
 import { robotsHandler, sitemapHandler } from './routes/seo.js';
 import { collections } from './config/collections.js';
 import { yoga } from './graphql/index.js';
@@ -117,6 +118,7 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
   app.route('/api/redirects', redirectsRouter);
   app.route('/api/comments', commentsRouter);
   app.route('/api/review', reviewRouter);
+  app.route('/api/calendar', calendarRouter);
   app.route('/api/system', systemRouter);
   app.route('/api', entriesRouter);
 

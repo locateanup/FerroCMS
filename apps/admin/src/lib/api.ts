@@ -1,6 +1,7 @@
 import type {
   AdminUser,
   AuditLogEntry,
+  CalendarItem,
   CollectionSchema,
   Comment,
   Entry,
@@ -154,6 +155,11 @@ export const api = {
       body: JSON.stringify({ approved, note }),
     }),
   listReviewQueue: () => req<{ items: Entry[] }>('/api/review/queue'),
+
+  calendar: (from: Date, to: Date) =>
+    req<{ items: CalendarItem[] }>(
+      `/api/calendar?from=${from.toISOString()}&to=${to.toISOString()}`,
+    ),
 
   listUsers: () => req<{ items: AdminUser[] }>('/api/users'),
   createUser: (email: string, password: string, role: Role, name?: string) =>
