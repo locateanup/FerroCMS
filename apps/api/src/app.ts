@@ -15,6 +15,7 @@ import { systemRouter } from './routes/system.js';
 import { auditRouter } from './routes/audit.js';
 import { searchRouter } from './routes/search.js';
 import { globalsRouter } from './routes/globals.js';
+import { redirectsRouter } from './routes/redirects.js';
 import { robotsHandler, sitemapHandler } from './routes/seo.js';
 import { collections } from './config/collections.js';
 import { yoga } from './graphql/index.js';
@@ -111,6 +112,7 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
   app.route('/api/audit-log', auditRouter);
   app.route('/api/search', searchRouter);
   app.route('/api/globals', globalsRouter);
+  app.route('/api/redirects', redirectsRouter);
   app.route('/api/system', systemRouter);
   app.route('/api', entriesRouter);
 

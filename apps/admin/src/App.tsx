@@ -11,6 +11,7 @@ import { UsersPage } from './pages/UsersPage.js';
 import { AuditLogPage } from './pages/AuditLogPage.js';
 import { SearchPage } from './pages/SearchPage.js';
 import { GlobalEditorPage } from './pages/GlobalEditorPage.js';
+import { RedirectsPage } from './pages/RedirectsPage.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -37,6 +38,9 @@ export function App() {
         <Route path="/media" element={<MediaPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/globals/:slug" element={<GlobalEditorPage />} />
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/redirects" element={<RedirectsPage />} />
+        )}
         <Route path="/security" element={<SecurityPage />} />
         {user.role === 'admin' && <Route path="/users" element={<UsersPage />} />}
         {user.role === 'admin' && <Route path="/audit-log" element={<AuditLogPage />} />}

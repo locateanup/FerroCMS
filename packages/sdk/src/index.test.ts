@@ -106,4 +106,21 @@ describe('createClient', () => {
     const [url] = fetchMock.mock.calls[0]!;
     expect(url).toBe('https://cms.test/api/globals/site-settings');
   });
+
+  it('resolveRedirect returns the mapping, or null on 404', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ toPath: '/new-url', statusCode: 301 }))
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: 'not_found', message: 'x' } }, 404),
+      );
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const hit = await client.resolveRedirect('/old-url');
+    expect(hit).toEqual({ toPath: '/new-url', statusCode: 301 });
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/redirects/resolve?path=%2Fold-url');
+
+    expect(await client.resolveRedirect('/never-existed')).toBeNull();
+  });
 });

@@ -9,6 +9,7 @@ import type {
   ListResult,
   LoginChallenge,
   MediaItem,
+  Redirect,
   Revision,
   Role,
   SearchHit,
@@ -159,6 +160,14 @@ export const api = {
   getGlobal: (slug: string) => req<GlobalEntry>(`/api/globals/${slug}`),
   updateGlobal: (slug: string, data: Record<string, unknown>) =>
     req<GlobalEntry>(`/api/globals/${slug}`, { method: 'PATCH', body: JSON.stringify({ data }) }),
+
+  listRedirects: () => req<{ items: Redirect[] }>('/api/redirects'),
+  createRedirect: (fromPath: string, toPath: string, statusCode: Redirect['statusCode']) =>
+    req<Redirect>('/api/redirects', {
+      method: 'POST',
+      body: JSON.stringify({ fromPath, toPath, statusCode }),
+    }),
+  deleteRedirect: (id: string) => req<void>(`/api/redirects/${id}`, { method: 'DELETE' }),
 
   listAuditLog: (params: { limit?: number; offset?: number } = {}) => {
     const q = new URLSearchParams();

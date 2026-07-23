@@ -37,6 +37,15 @@ export interface GlobalEntry {
   updatedAt: string;
 }
 
+export interface Redirect {
+  id: string;
+  fromPath: string;
+  toPath: string;
+  statusCode: 301 | 302 | 307 | 308;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface SearchHit {
   entryId: string;
   collection: string;

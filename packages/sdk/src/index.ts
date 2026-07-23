@@ -81,6 +81,12 @@ export interface FerroCmsClient {
   mediaUrl(key: string): string;
   /** Fetch a global (site settings, header/footer nav, ...) — always one document per slug. */
   getGlobal<T = Record<string, unknown>>(slug: string): Promise<T>;
+  /**
+   * Look up whether a path has a configured redirect — call this from your
+   * framework's own middleware/edge function to serve the actual HTTP
+   * redirect (the CMS only holds the mapping, not the site's routes).
+   */
+  resolveRedirect(path: string): Promise<{ toPath: string; statusCode: number } | null>;
 }
 
 export * from './seo.js';
@@ -152,6 +158,16 @@ export function createClient(options: ClientOptions): FerroCmsClient {
     async getGlobal<T = Record<string, unknown>>(slug: string) {
       const result = await request<{ data: T }>(`/api/globals/${encodeURIComponent(slug)}`);
       return result.data;
+    },
+    async resolveRedirect(path: string) {
+      try {
+        return await request<{ toPath: string; statusCode: number }>(
+          `/api/redirects/resolve?path=${encodeURIComponent(path)}`,
+        );
+      } catch (err) {
+        if (err instanceof FerroCmsError && err.status === 404) return null;
+        throw err;
+      }
     },
   };
 }
