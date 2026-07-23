@@ -7,12 +7,14 @@
  */
 
 import {
+  applyPlugins,
   atLeast,
   buildRegistry,
   defineCollection,
   defineTaxonomy,
   type ResolvedCollection,
 } from '@ferrocms/core';
+import { auditLogPlugin } from '../plugins/auditLog.js';
 
 export const authors = defineCollection({
   slug: 'authors',
@@ -44,7 +46,14 @@ export const posts = defineCollection({
     { name: 'body', type: 'richText' },
     { name: 'categories', type: 'taxonomy', taxonomy: 'categories' },
     { name: 'tags', type: 'taxonomy', taxonomy: 'tags' },
-    { name: 'featured', type: 'boolean', defaultValue: false },
+    // Field-level permission: any author can create/edit a post, but only
+    // editors+ may toggle whether it's featured on the homepage.
+    {
+      name: 'featured',
+      type: 'boolean',
+      defaultValue: false,
+      access: { update: atLeast('editor') },
+    },
   ],
 });
 
@@ -52,10 +61,14 @@ export const pages = defineCollection({
   slug: 'pages',
   seo: { urlPattern: '/:slug' },
   admin: { icon: 'file', useAsTitle: 'title' },
+  // i18n: body is translated per locale; title/slug stay single-locale (the
+  // URL is the same page regardless of language in this demo).
+  locales: ['en', 'fr'],
+  defaultLocale: 'en',
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 200 },
     { name: 'slug', type: 'slug', from: 'title', unique: true, required: true },
-    { name: 'body', type: 'richText' },
+    { name: 'body', type: 'richText', localized: true },
   ],
   access: {
     // Only editors and admins can manage pages.
@@ -65,7 +78,12 @@ export const pages = defineCollection({
   },
 });
 
-export const collections: ResolvedCollection[] = [posts, pages, authors, categories, tags];
+// Plugins can contribute collections and/or merge hooks into existing ones —
+// see plugins/auditLog.ts for a minimal example.
+export const collections: ResolvedCollection[] = applyPlugins(
+  [posts, pages, authors, categories, tags],
+  [auditLogPlugin],
+);
 
 export const registry = buildRegistry(collections);
 

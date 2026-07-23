@@ -26,6 +26,8 @@ export const errors = {
   conflict: (message: string) => new ApiError(409, 'conflict', message),
   validation: (details: unknown) =>
     new ApiError(422, 'validation_error', 'The submitted data is invalid.', details),
+  tooManyRequests: (message = 'Too many attempts. Try again later.') =>
+    new ApiError(429, 'too_many_requests', message),
 };
 
 /** Convert any thrown value into a JSON error response. */

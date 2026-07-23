@@ -1,4 +1,5 @@
 import type { Field } from '../lib/types.js';
+import { getFieldRenderer } from '../lib/fieldRegistry.js';
 import { RelationInput } from './RelationInput.js';
 import { MediaInput } from './MediaInput.js';
 import { BlockEditor } from './BlockEditor.js';
@@ -31,6 +32,9 @@ export function FieldInput({ field, value, onChange }: Props) {
   );
 
   function renderControl() {
+    const Custom = getFieldRenderer(field.type);
+    if (Custom) return <Custom field={field} value={value} onChange={onChange} />;
+
     switch (field.type) {
       case 'textarea':
         return (

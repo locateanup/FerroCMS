@@ -31,6 +31,16 @@ export interface CollectionAccess {
   delete?: AccessFn;
 }
 
+/**
+ * Per-field access control. Omit either to inherit the collection's access
+ * for that operation. Enforced server-side: unreadable fields are stripped
+ * from responses, unwritable fields are stripped from incoming writes.
+ */
+export interface FieldAccess {
+  read?: AccessFn;
+  update?: AccessFn;
+}
+
 /** Rank roles so we can express "at least editor". */
 const ROLE_RANK: Record<Role, number> = {
   viewer: 0,

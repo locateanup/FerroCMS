@@ -6,6 +6,8 @@
  * runtime validation (Zod), the admin form control, and the client SDK types.
  */
 
+import type { FieldAccess } from './access.js';
+
 export type FieldType =
   | 'text'
   | 'textarea'
@@ -17,7 +19,8 @@ export type FieldType =
   | 'json'
   | 'richText'
   | 'relation'
-  | 'media';
+  | 'media'
+  | 'taxonomy';
 
 export interface FieldAdminOptions {
   /** Placeholder shown in the admin input. */
@@ -43,6 +46,13 @@ interface BaseField {
   unique?: boolean;
   /** Longer description for editors. */
   description?: string;
+  /** Per-field read/update access, on top of the collection's own access rules. */
+  access?: FieldAccess;
+  /**
+   * Store a per-locale value (`{ en: "...", fr: "..." }`) instead of a single
+   * value. Requires the collection to declare `locales`.
+   */
+  localized?: boolean;
   admin?: FieldAdminOptions;
 }
 

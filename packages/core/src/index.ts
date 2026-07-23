@@ -7,3 +7,5 @@ export * from './slug.js';
 export * from './seo.js';
 export * from './richtext.js';
 export * from './taxonomy.js';
+export * from './fieldAccess.js';
+export * from './plugin.js';

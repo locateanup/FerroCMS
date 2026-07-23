@@ -58,19 +58,34 @@ function fieldSchema(field: Field): z.ZodTypeAny {
   }
 }
 
+export interface BuildEntrySchemaOptions {
+  /** Make every field optional (for PATCH/update). */
+  partial?: boolean;
+  /** The collection's declared locale codes, if it has any localized fields. */
+  locales?: string[];
+}
+
 /**
  * Build a Zod object schema for a collection's fields.
  * @param opts.partial - make every field optional (for PATCH/update).
+ * @param opts.locales - required if any field has `localized: true`; wraps
+ *   that field's schema in a partial per-locale record (`{ en: ..., fr: ... }`).
+ *   A localized field's `required` is not enforced per-locale — an entry may
+ *   have translations filled in incrementally.
  */
 export function buildEntrySchema(
   fields: Field[],
-  opts: { partial?: boolean } = {},
+  opts: BuildEntrySchemaOptions = {},
 ): z.ZodObject<z.ZodRawShape> {
   const shape: z.ZodRawShape = {};
   for (const field of fields) {
     let schema = fieldSchema(field);
-    const isRequired = field.required === true && !opts.partial;
-    if (!isRequired) schema = schema.optional();
+    if (field.localized && opts.locales && opts.locales.length > 0) {
+      schema = z.record(z.enum(opts.locales as [string, ...string[]]), schema).optional();
+    } else {
+      const isRequired = field.required === true && !opts.partial;
+      if (!isRequired) schema = schema.optional();
+    }
     shape[field.name] = schema;
   }
   // Reject unknown keys so typos don't silently persist.
@@ -87,7 +102,7 @@ export interface ValidationResult {
 export function validateEntry(
   fields: Field[],
   input: unknown,
-  opts: { partial?: boolean } = {},
+  opts: BuildEntrySchemaOptions = {},
 ): ValidationResult {
   const schema = buildEntrySchema(fields, opts);
   const result = schema.safeParse(input);

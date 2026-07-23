@@ -73,7 +73,8 @@ Legend: ✅ implemented · 🚧 planned
 - ✅ Revision history with one-click restore
 - ✅ Taxonomies (`defineTaxonomy()`) — hierarchical or flat term lists (categories, tags) assigned via
   a `taxonomy` field, with a hierarchy-aware picker in the admin
-- 🚧 i18n
+- ✅ i18n — `localized: true` fields store a per-locale value (`{ en: ..., fr: ... }`), with a locale
+  switcher in the admin and an SDK `localize()` helper for the front-end
 
 ### Delivery
 
@@ -99,7 +100,11 @@ Legend: ✅ implemented · 🚧 planned
 
 - ✅ Session auth with role-based access control (admin / editor / author / viewer)
 - ✅ API keys, server-side authorization, Zod input validation, upload limits, CSRF-safe cookies
-- 🚧 SSO / OAuth, 2FA, granular per-field permissions
+- ✅ Granular per-field permissions — restrict read/update on individual fields by role, enforced
+  server-side (unreadable fields are stripped from responses, unwritable ones from writes)
+- ✅ Rate limiting on login/registration, PBKDF2 at 600k iterations (current OWASP guidance), and
+  strict security response headers (CSP, `nosniff`, `X-Frame-Options`, …)
+- 🚧 SSO / OAuth, 2FA
 
 ### SEO
 
@@ -109,8 +114,13 @@ Legend: ✅ implemented · 🚧 planned
 
 ### Extensibility
 
-- ✅ Lifecycle hook engine (`beforeChange` / `afterChange`) — the seed of the plugin system
-- 🚧 Plugin marketplace, custom field types, custom admin panels, integrations (GA4, ImageKit, Algolia, Stripe, …)
+- ✅ A real plugin system (`definePlugin` / `applyPlugins`) — plugins contribute new collections
+  and/or merge lifecycle hooks into existing ones, with no core changes (see `plugins/auditLog.ts`
+  for a minimal example)
+- ✅ Custom field _renderers_ — swap in a different admin widget for any field type via a small
+  registry (`registerFieldRenderer`), without touching `FieldInput.tsx`
+- 🚧 Plugin marketplace / package registry, wholly new field _storage_ kinds, third-party
+  integrations (GA4, ImageKit, Algolia, Stripe, …)
 
 ## How it compares
 
@@ -240,6 +250,15 @@ import { renderRichTextHtml } from '@ferrocms/sdk';
 
 const html = renderRichTextHtml(post.data.body, { mediaUrl: client.mediaUrl });
 // -> '<p>Hello <strong>world</strong></p>...' — safe to insert as HTML
+```
+
+For a `localized` field, flatten it to the current locale (with an optional fallback):
+
+```ts
+import { localize } from '@ferrocms/sdk';
+
+const page = await client.findBySlug('pages', 'about');
+const localized = localize(page.data, ['body'], 'fr', 'en'); // falls back to 'en' if untranslated
 ```
 
 ## FAQ

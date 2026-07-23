@@ -36,6 +36,7 @@ export interface Field {
   from?: string;
   relationTo?: string;
   taxonomy?: string;
+  localized?: boolean;
   admin?: {
     placeholder?: string;
     hidden?: boolean;
@@ -53,6 +54,8 @@ export interface CollectionSchema {
   drafts: boolean;
   timestamps: boolean;
   taxonomyConfig: { enabled: boolean; hierarchical: boolean };
+  locales: string[];
+  defaultLocale?: string;
 }
 
 export interface Entry {

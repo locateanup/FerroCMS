@@ -48,7 +48,10 @@ export async function hmacSha256Hex(secret: string, message: string): Promise<st
     .join('');
 }
 
-const PBKDF2_ITERATIONS = 100_000;
+// OWASP (2023+) recommends >=600,000 iterations for PBKDF2-HMAC-SHA256.
+// Stored hashes embed their own iteration count, so raising this is safe —
+// existing hashes keep verifying against the count they were created with.
+const PBKDF2_ITERATIONS = 600_000;
 
 async function deriveBits(password: string, salt: Uint8Array, iterations: number): Promise<string> {
   const key = await crypto.subtle.importKey('raw', encoder.encode(password), 'PBKDF2', false, [

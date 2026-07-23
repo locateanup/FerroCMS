@@ -49,6 +49,13 @@ export interface CollectionConfig {
    * already declared. Prefer `defineTaxonomy()` over setting this directly.
    */
   taxonomy?: CollectionTaxonomy;
+  /**
+   * Locale codes this collection's `localized` fields are translated into,
+   * e.g. `['en', 'fr']`. Required if any field sets `localized: true`.
+   */
+  locales?: string[];
+  /** Default locale for fallback. Defaults to the first entry in `locales`. */
+  defaultLocale?: string;
   access?: CollectionAccess;
   hooks?: CollectionHooks;
   admin?: CollectionAdminOptions;
@@ -62,6 +69,8 @@ export interface ResolvedCollection extends CollectionConfig {
   admin: CollectionAdminOptions & { useAsTitle: string };
   seoConfig: { enabled: boolean; urlPattern: string };
   taxonomyConfig: { enabled: boolean; hierarchical: boolean };
+  locales: string[];
+  defaultLocale?: string;
 }
 
 const SLUG_RE = /^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$/;
@@ -131,6 +140,22 @@ export function defineCollection(config: CollectionConfig): ResolvedCollection {
     }
   }
 
+  const locales = config.locales ?? [];
+  const localizedFields = fields.filter((f) => f.localized === true);
+  if (localizedFields.length > 0 && locales.length === 0) {
+    throw new Error(
+      `Collection "${config.slug}" has localized field(s) (${localizedFields
+        .map((f) => f.name)
+        .join(', ')}) but no "locales" configured.`,
+    );
+  }
+  if (config.defaultLocale && !locales.includes(config.defaultLocale)) {
+    throw new Error(
+      `Collection "${config.slug}" defaultLocale "${config.defaultLocale}" is not in "locales".`,
+    );
+  }
+  const defaultLocale = config.defaultLocale ?? locales[0];
+
   const firstText = config.fields.find((f) => f.type === 'text' || f.type === 'slug');
   const useAsTitle = config.admin?.useAsTitle ?? firstText?.name ?? config.fields[0]!.name;
 
@@ -152,6 +177,8 @@ export function defineCollection(config: CollectionConfig): ResolvedCollection {
     admin: { ...config.admin, useAsTitle },
     seoConfig: { enabled: seoEnabled, urlPattern },
     taxonomyConfig: { enabled: taxonomyEnabled, hierarchical },
+    locales,
+    defaultLocale,
   };
 }
 

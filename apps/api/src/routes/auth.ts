@@ -12,8 +12,14 @@ import {
   setSessionCookie,
 } from '../auth/session.js';
 import { errors } from '../lib/errors.js';
+import { checkRateLimit, clientIp } from '../lib/rateLimit.js';
 
 const router = new Hono<AppBindings>();
+
+// Slow down brute-force login/registration attempts. Keyed by IP + email so a
+// single stuck key can't lock out unrelated users.
+const LOGIN_LIMIT = { windowSeconds: 15 * 60, max: 10 };
+const REGISTER_LIMIT = { windowSeconds: 60 * 60, max: 5 };
 
 const credsSchema = z.object({
   email: z.string().email(),
@@ -40,6 +46,10 @@ async function parse<T>(c: Context<AppBindings>, schema: z.ZodType<T>): Promise<
 
 // First-run registration: only allowed when there are zero users. Creates an admin.
 router.post('/register', async (c) => {
+  const ip = clientIp(c.req.raw.headers);
+  const limit = await checkRateLimit(c.get('kv'), `register:${ip}`, REGISTER_LIMIT);
+  if (!limit.allowed) throw errors.tooManyRequests();
+
   const db = c.get('db');
   const [row] = await db.select({ count: sql<number>`count(*)` }).from(users);
   if ((row?.count ?? 0) > 0) {
@@ -63,6 +73,11 @@ router.post('/register', async (c) => {
 
 router.post('/login', async (c) => {
   const body = await parse(c, credsSchema);
+
+  const ip = clientIp(c.req.raw.headers);
+  const limit = await checkRateLimit(c.get('kv'), `login:${ip}:${body.email}`, LOGIN_LIMIT);
+  if (!limit.allowed) throw errors.tooManyRequests();
+
   const db = c.get('db');
   const [user] = await db.select().from(users).where(eq(users.email, body.email)).limit(1);
   const valid = user ? await verifyPassword(body.password, user.passwordHash) : false;

@@ -18,6 +18,12 @@ export function EntryEditorPage() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [locale, setLocale] = useState<string>('');
+
+  useEffect(() => {
+    if (!collection || collection.locales.length === 0 || locale) return;
+    setLocale(collection.defaultLocale ?? collection.locales[0]!);
+  }, [collection, locale]);
 
   useEffect(() => {
     if (isNew || !slug || !id) return;
@@ -85,6 +91,34 @@ export function EntryEditorPage() {
         )}
       </div>
 
+      {collection && collection.locales.length > 0 && (
+        <div className="row" style={{ gap: 6, marginBottom: 14 }}>
+          <span className="muted" style={{ fontSize: 12, marginRight: 4 }}>
+            Language:
+          </span>
+          {collection.locales.map((l) => (
+            <button
+              key={l}
+              type="button"
+              className="btn"
+              style={
+                l === locale
+                  ? {
+                      padding: '4px 12px',
+                      fontSize: 12,
+                      background: 'var(--text-primary)',
+                      color: 'var(--surface-2)',
+                    }
+                  : { padding: '4px 12px', fontSize: 12 }
+              }
+              onClick={() => setLocale(l)}
+            >
+              {l.toUpperCase()}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="editor-layout">
         <div className="card">
           {collection ? (
@@ -92,6 +126,24 @@ export function EntryEditorPage() {
               const group = field.admin?.group;
               const prevGroup = i > 0 ? collection.fields[i - 1]?.admin?.group : undefined;
               const showHeader = group && group !== prevGroup;
+              const isLocalized = field.localized === true && collection.locales.length > 0;
+              const fieldValue = isLocalized
+                ? (data[field.name] as Record<string, unknown> | undefined)?.[locale]
+                : data[field.name];
+              const handleChange = (v: unknown) => {
+                if (isLocalized) {
+                  setData((prev) => ({
+                    ...prev,
+                    [field.name]: {
+                      ...(prev[field.name] as Record<string, unknown> | undefined),
+                      [locale]: v,
+                    },
+                  }));
+                  setDirty(true);
+                } else {
+                  setField(field.name, v);
+                }
+              };
               return (
                 <div key={field.name}>
                   {showHeader && (
@@ -110,11 +162,7 @@ export function EntryEditorPage() {
                       {group}
                     </div>
                   )}
-                  <FieldInput
-                    field={field}
-                    value={data[field.name]}
-                    onChange={(v) => setField(field.name, v)}
-                  />
+                  <FieldInput field={field} value={fieldValue} onChange={handleChange} />
                 </div>
               );
             })

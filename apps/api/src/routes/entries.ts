@@ -2,12 +2,15 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import {
   ENTRY_STATUSES,
+  filterFieldsForRead,
+  filterFieldsForWrite,
   resolveAccess,
   validateEntry,
+  type AccessArgs,
   type EntryStatus,
   type ResolvedCollection,
 } from '@ferrocms/core';
-import type { AppBindings } from '../env.js';
+import type { AppBindings, AuthUser } from '../env.js';
 import { getCollection } from '../config/collections.js';
 import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
@@ -53,6 +56,10 @@ function requireCollection(slug: string): ResolvedCollection {
   const collection = getCollection(slug);
   if (!collection) throw errors.notFound('Collection');
   return collection;
+}
+
+function accessArgs(user: AuthUser | null, id?: string): AccessArgs {
+  return { user: user ? { id: user.id, role: user.role } : null, id };
 }
 
 /** libSQL/SQLite unique-violation guard so slug clashes return 409, not 500. */
@@ -101,7 +108,12 @@ router.get('/:collection', async (c) => {
     limit,
     offset,
   });
-  return c.json({ ...result, limit, offset });
+  const args = accessArgs(user);
+  const items = result.items.map((entry) => ({
+    ...entry,
+    data: filterFieldsForRead(collection.fields, entry.data as Record<string, unknown>, args),
+  }));
+  return c.json({ ...result, items, limit, offset });
 });
 
 // Get one entry by id.
@@ -112,8 +124,14 @@ router.get('/:collection/:id', async (c) => {
 
   const entry = await svc.getEntry(c.get('db'), collection.slug, id);
   if (!entry) throw errors.notFound('Entry');
-  if (c.get('user') === null && entry.status !== 'published') throw errors.notFound('Entry');
-  return c.json(entry);
+  const user = c.get('user');
+  if (user === null && entry.status !== 'published') throw errors.notFound('Entry');
+  const data = filterFieldsForRead(
+    collection.fields,
+    entry.data as Record<string, unknown>,
+    accessArgs(user, id),
+  );
+  return c.json({ ...entry, data });
 });
 
 // Create an entry.
@@ -122,7 +140,8 @@ router.post('/:collection', async (c) => {
   const user = enforce(c, resolveAccess(collection.access).create);
 
   const body = await parseBody(c, createBody);
-  const validation = validateEntry(collection.fields, body.data);
+  const writable = filterFieldsForWrite(collection.fields, body.data ?? {}, accessArgs(user));
+  const validation = validateEntry(collection.fields, writable, { locales: collection.locales });
   if (!validation.success) throw errors.validation(validation.errors);
 
   try {
@@ -151,7 +170,11 @@ router.patch('/:collection/:id', async (c) => {
 
   const body = await parseBody(c, updateBody);
   if (body.data) {
-    const validation = validateEntry(collection.fields, body.data, { partial: true });
+    const writable = filterFieldsForWrite(collection.fields, body.data, accessArgs(user, id));
+    const validation = validateEntry(collection.fields, writable, {
+      partial: true,
+      locales: collection.locales,
+    });
     if (!validation.success) throw errors.validation(validation.errors);
     body.data = validation.data;
   }

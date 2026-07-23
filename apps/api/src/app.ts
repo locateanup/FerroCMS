@@ -1,5 +1,6 @@
 import { Hono, type Context } from 'hono';
 import { cors } from 'hono/cors';
+import { secureHeaders } from 'hono/secure-headers';
 import { authenticated } from '@ferrocms/core';
 import type { Db } from '@ferrocms/db';
 import type { AppBindings } from './env.js';
@@ -29,6 +30,19 @@ export type MakeContext = (c: Context<AppBindings>) => PlatformContext;
  */
 export function createApp(makeContext: MakeContext): Hono<AppBindings> {
   const app = new Hono<AppBindings>();
+
+  // Security response headers. This API only ever serves JSON, images, and
+  // plain text (sitemap/robots) — never HTML — so a strict CSP is safe.
+  app.use(
+    '*',
+    secureHeaders({
+      contentSecurityPolicy: { defaultSrc: ["'none'"] },
+      xContentTypeOptions: 'nosniff',
+      xFrameOptions: 'DENY',
+      referrerPolicy: 'strict-origin-when-cross-origin',
+      crossOriginResourcePolicy: 'cross-origin',
+    }),
+  );
 
   // Platform middleware — resolve runtime services and the current user first.
   app.use('*', async (c, next) => {
@@ -71,6 +85,8 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
       drafts: col.drafts,
       timestamps: col.timestamps,
       taxonomyConfig: col.taxonomyConfig,
+      locales: col.locales,
+      defaultLocale: col.defaultLocale,
     }));
     return c.json({ items: schemas });
   });
