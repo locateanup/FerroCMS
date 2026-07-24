@@ -80,6 +80,15 @@ export async function listEntries(
   return { items, total: count?.value ?? 0 };
 }
 
+/** Every entry in a collection, regardless of status — for export/backup. */
+export async function listAllEntries(db: Db, collection: string): Promise<Entry[]> {
+  return db
+    .select()
+    .from(entries)
+    .where(eq(entries.collection, collection))
+    .orderBy(desc(entries.createdAt));
+}
+
 export async function getEntry(db: Db, collection: string, id: string): Promise<Entry | null> {
   const [row] = await db
     .select()

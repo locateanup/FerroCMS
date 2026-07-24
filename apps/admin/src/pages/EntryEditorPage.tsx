@@ -135,6 +135,12 @@ export function EntryEditorPage() {
     navigate(`/collections/${slug}`);
   }
 
+  async function clone() {
+    if (isNew) return;
+    const cloned = await api.cloneEntry(slug!, id!);
+    navigate(`/collections/${slug}/${cloned.id}`);
+  }
+
   if (loading) return <p className="muted">Loading…</p>;
 
   return (
@@ -144,6 +150,11 @@ export function EntryEditorPage() {
           {isNew ? 'New' : 'Edit'} {collection?.labels.singular ?? slug}
         </h1>
         <div className="spacer" />
+        {!isNew && (
+          <button className="btn" onClick={clone}>
+            Clone
+          </button>
+        )}
         {!isNew && (
           <button className="btn btn-danger" onClick={remove}>
             Delete

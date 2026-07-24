@@ -129,6 +129,25 @@ export const api = {
       body: JSON.stringify({ data, status, scheduledAt }),
     }),
   deleteEntry: (slug: string, id: string) => req<void>(`/api/${slug}/${id}`, { method: 'DELETE' }),
+  cloneEntry: (slug: string, id: string) => req<Entry>(`/api/${slug}/${id}/clone`, { method: 'POST' }),
+
+  bulkUpdateStatus: (slug: string, ids: string[], status: EntryStatus) =>
+    req<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>(`/api/${slug}/bulk`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ids, status }),
+    }),
+  bulkDelete: (slug: string, ids: string[]) =>
+    req<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>(`/api/${slug}/bulk`, {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
+    }),
+  exportEntries: (slug: string) =>
+    req<{ collection: string; items: Entry[] }>(`/api/${slug}/export`),
+  importEntries: (slug: string, items: Array<{ data: Record<string, unknown>; status?: EntryStatus }>) =>
+    req<{ created: string[]; failed: Array<{ index: number; error: string }> }>(`/api/${slug}/import`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
 
   listMedia: (folder?: string) =>
     req<{ items: MediaItem[] }>(

@@ -74,6 +74,17 @@ const updateBody = z.object({
   scheduledAt: scheduledAtSchema,
 });
 
+const bulkStatusSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(200),
+  status: statusSchema,
+});
+const bulkIdsSchema = z.object({ ids: z.array(z.string().min(1)).min(1).max(200) });
+
+interface BulkResult {
+  succeeded: string[];
+  failed: Array<{ id: string; error: string }>;
+}
+
 /**
  * A `'scheduled'` entry always needs a future `scheduledAt` — resolve it from
  * the request (falling back to what's already stored, on update) and enforce
@@ -214,6 +225,19 @@ router.get('/:collection', async (c) => {
   return freshJson(c, { ...result, items, limit, offset }, cacheKey, collection.slug);
 });
 
+// Export every entry in a collection as JSON (full data, all statuses) — for
+// backup or migrating between environments. Same "update" access as editing
+// the collection, since a full unfiltered dump is a bulk data operation, not
+// a normal scoped read. Registered before the dynamic /:collection/:id route
+// below — a static "export" segment must win over `:id` matching it literally.
+router.get('/:collection/export', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  enforce(c, resolveAccess(collection.access).update);
+
+  const items = await svc.listAllEntries(c.get('db'), collection.slug);
+  return c.json({ collection: collection.slug, items });
+});
+
 // Get one entry by id.
 router.get('/:collection/:id', async (c) => {
   const collection = requireCollection(c.req.param('collection'));
@@ -275,6 +299,38 @@ router.post('/:collection', async (c) => {
   }
 });
 
+// Bulk status change (publish/draft/archive/... many at once). Same "update"
+// access as editing one entry. Best-effort per id — one bad id doesn't fail
+// the whole batch; failures are reported back individually. Registered
+// before the dynamic /:collection/:id route below — a static "bulk" segment
+// must win over `:id` matching it literally.
+router.patch('/:collection/bulk', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const user = enforce(c, resolveAccess(collection.access).update);
+  const body = await parseBody(c, bulkStatusSchema);
+
+  const result: BulkResult = { succeeded: [], failed: [] };
+  for (const id of body.ids) {
+    try {
+      const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+      if (!existing) throw errors.notFound('Entry');
+      const scheduledAt = resolveScheduledAt(body.status, undefined, existing.scheduledAt);
+      await svc.updateEntry(c.get('db'), {
+        collection,
+        existing,
+        status: body.status,
+        scheduledAt,
+        user,
+      });
+      result.succeeded.push(id);
+    } catch (err) {
+      result.failed.push({ id, error: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  }
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+  return c.json(result);
+});
+
 // Update an entry.
 router.patch('/:collection/:id', async (c) => {
   const collection = requireCollection(c.req.param('collection'));
@@ -325,6 +381,29 @@ router.patch('/:collection/:id', async (c) => {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
     throw err;
   }
+});
+
+// Bulk delete. Same "delete" access as deleting one entry. Registered before
+// the dynamic /:collection/:id route below — a static "bulk" segment must
+// win over `:id` matching it literally.
+router.delete('/:collection/bulk', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const user = enforce(c, resolveAccess(collection.access).delete);
+  const body = await parseBody(c, bulkIdsSchema);
+
+  const result: BulkResult = { succeeded: [], failed: [] };
+  for (const id of body.ids) {
+    try {
+      const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+      if (!existing) throw errors.notFound('Entry');
+      await svc.deleteEntry(c.get('db'), existing, user);
+      result.succeeded.push(id);
+    } catch (err) {
+      result.failed.push({ id, error: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  }
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+  return c.json(result);
 });
 
 // Delete an entry.
@@ -476,6 +555,79 @@ router.post('/:collection/:id/review', async (c) => {
     );
   }
   return c.json(entry);
+});
+
+// Clone an entry: a new draft with the same data. Title (the useAsTitle
+// field, if it's a string) gets " (Copy)" appended and the slug cleared so
+// it regenerates from the new title — otherwise the clone would collide
+// with the original's unique slug.
+router.post('/:collection/:id/clone', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, resolveAccess(collection.access).create);
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+
+  const data: Record<string, unknown> = { ...(existing.data as Record<string, unknown>) };
+  const titleField = collection.admin.useAsTitle;
+  if (typeof data[titleField] === 'string') {
+    data[titleField] = `${data[titleField] as string} (Copy)`;
+  }
+  const slugField = collection.fields.find((f) => f.type === 'slug');
+  if (slugField) delete data[slugField.name];
+
+  const entry = await svc.createEntry(c.get('db'), {
+    collection,
+    data,
+    status: 'draft',
+    user,
+  });
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+  return c.json(entry, 201);
+});
+
+const importItemSchema = z.object({
+  data: z.record(z.unknown()),
+  status: statusSchema.optional(),
+});
+const importBodySchema = z.object({ items: z.array(importItemSchema).min(1).max(500) });
+
+// Import entries from JSON (the same shape /export produces). Best-effort —
+// each item is validated and created independently; one bad row doesn't
+// fail the batch.
+router.post('/:collection/import', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const user = enforce(c, resolveAccess(collection.access).update);
+  const body = await parseBody(c, importBodySchema);
+
+  const result: { created: string[]; failed: Array<{ index: number; error: string }> } = {
+    created: [],
+    failed: [],
+  };
+  for (const [index, item] of body.items.entries()) {
+    try {
+      const writable = filterFieldsForWrite(collection.fields, item.data, accessArgs(user));
+      const validation = validateEntry(collection.fields, writable, { locales: collection.locales });
+      if (!validation.success) {
+        throw new Error(validation.errors!.map((e) => `${e.path}: ${e.message}`).join('; '));
+      }
+      const status = item.status ?? 'draft';
+      const scheduledAt = resolveScheduledAt(status, undefined, undefined);
+      const entry = await svc.createEntry(c.get('db'), {
+        collection,
+        data: validation.data!,
+        status,
+        scheduledAt,
+        user,
+      });
+      result.created.push(entry.id);
+    } catch (err) {
+      result.failed.push({ index, error: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  }
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+  return c.json(result, 201);
 });
 
 export { router as entriesRouter };
