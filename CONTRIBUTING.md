@@ -24,6 +24,17 @@ pnpm test
 pnpm format:check
 ```
 
+If you touched the admin UI or an API route it depends on, also run the Playwright end-to-end suite
+(login, publish a post, upload media — a real browser against a real, throwaway local database, no
+Turso account needed):
+
+```bash
+pnpm test:e2e
+```
+
+The first run downloads a Chromium build via `pnpm --filter @ferrocms/e2e exec playwright install
+chromium`.
+
 ## Guidelines
 
 - **Type safety first.** No `any` without a comment explaining why. Prefer inferring types from the

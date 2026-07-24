@@ -36,3 +36,4 @@ pnpm-debug.log*
 coverage/
 playwright-report/
 test-results/
+apps/e2e/.tmp/
