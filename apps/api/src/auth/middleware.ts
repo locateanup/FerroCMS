@@ -1,6 +1,6 @@
 import type { Context } from 'hono';
 import { eq } from 'drizzle-orm';
-import { apiKeys } from '@ferrocms/db';
+import { apiKeys, users } from '@ferrocms/db';
 import type { AccessArgs, AccessFn } from '@ferrocms/core';
 import type { AppBindings, AuthUser } from '../env.js';
 import { sha256Hex } from '../lib/crypto.js';
@@ -30,6 +30,12 @@ export async function resolveUser(c: Context<AppBindings>): Promise<AuthUser | n
   if (token) {
     const session = await readSession(c.get('kv'), token);
     if (session) {
+      // Re-check `active` against the DB (not just the cached session payload) so
+      // deactivating a user takes effect immediately instead of waiting out the
+      // session TTL.
+      const db = c.get('db');
+      const [row] = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+      if (!row || !row.active) return null;
       return { id: session.userId, role: session.role, email: session.email, via: 'session' };
     }
   }

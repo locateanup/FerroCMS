@@ -89,4 +89,96 @@ describe('createClient', () => {
     expect(await client.preview('posts', 'abc', 'bad-token')).toBeNull();
     expect(await client.preview('posts', 'missing', 'tok')).toBeNull();
   });
+
+  it('getGlobal fetches the right URL and unwraps to just the data', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        id: '1',
+        collection: 'site-settings',
+        data: { siteName: 'FerroCMS Demo' },
+      }),
+    );
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const settings = await client.getGlobal<{ siteName: string }>('site-settings');
+
+    expect(settings.siteName).toBe('FerroCMS Demo');
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/globals/site-settings');
+  });
+
+  it('resolveRedirect returns the mapping, or null on 404', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ toPath: '/new-url', statusCode: 301 }))
+      .mockResolvedValueOnce(
+        jsonResponse({ error: { code: 'not_found', message: 'x' } }, 404),
+      );
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const hit = await client.resolveRedirect('/old-url');
+    expect(hit).toEqual({ toPath: '/new-url', statusCode: 301 });
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/redirects/resolve?path=%2Fold-url');
+
+    expect(await client.resolveRedirect('/never-existed')).toBeNull();
+  });
+
+  it('listComments fetches the right URL and returns only approved comments', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse({
+        items: [{ id: '1', collection: 'posts', entryId: 'p1', authorName: 'Alice', body: 'Hi', approved: true }],
+      }),
+    );
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const items = await client.listComments('posts', 'p1');
+
+    expect(items).toHaveLength(1);
+    const [url] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/comments?collection=posts&entryId=p1');
+  });
+
+  it('submitComment posts JSON to the right URL', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      jsonResponse(
+        { id: '1', collection: 'posts', entryId: 'p1', authorName: 'Alice', body: 'Hi', approved: false },
+        201,
+      ),
+    );
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const comment = await client.submitComment({
+      collection: 'posts',
+      entryId: 'p1',
+      authorName: 'Alice',
+      body: 'Hi',
+    });
+
+    expect(comment.approved).toBe(false);
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/comments');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({
+      collection: 'posts',
+      entryId: 'p1',
+      authorName: 'Alice',
+      body: 'Hi',
+    });
+  });
+
+  it('submitForm posts JSON to the right URL', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ id: '1', data: { name: 'Alice' } }, 201));
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const result = await client.submitForm<{ name: string }>('contact', { name: 'Alice' });
+
+    expect(result.data.name).toBe('Alice');
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/forms/contact/submit');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({ name: 'Alice' });
+  });
 });

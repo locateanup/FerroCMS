@@ -14,9 +14,97 @@ export interface LoginChallenge {
   challengeToken: string;
 }
 
+export interface AdminUser {
+  id: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  active: boolean;
+  totpEnabled: boolean;
+  createdAt: string;
+}
+
+export interface GlobalSchema {
+  slug: string;
+  label: string;
+  fields: Field[];
+}
+
+export interface GlobalEntry {
+  id: string;
+  collection: string;
+  data: Record<string, unknown>;
+  updatedAt: string;
+}
+
+export interface Comment {
+  id: string;
+  collection: string;
+  entryId: string;
+  authorName: string;
+  authorEmail: string | null;
+  body: string;
+  approved: boolean;
+  createdAt: string;
+}
+
+export interface Redirect {
+  id: string;
+  fromPath: string;
+  toPath: string;
+  statusCode: 301 | 302 | 307 | 308;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CalendarItem {
+  id: string;
+  collection: string;
+  status: EntryStatus;
+  title: string;
+  date: string;
+}
+
+export interface SearchHit {
+  entryId: string;
+  collection: string;
+  title: string;
+  snippet: string;
+}
+
+export interface FormSchema {
+  slug: string;
+  name: string;
+  fields: Field[];
+}
+
+export interface FormSubmission {
+  id: string;
+  formSlug: string;
+  data: Record<string, unknown>;
+  createdAt: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  userId: string | null;
+  action: string;
+  collection: string | null;
+  entryId: string | null;
+  details: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export interface SelectOption {
   label: string;
   value: string;
+}
+
+export interface FieldCondition {
+  field: string;
+  equals?: unknown;
+  notEquals?: unknown;
+  truthy?: boolean;
 }
 
 export interface Field {
@@ -33,7 +121,9 @@ export interface Field {
     | 'richText'
     | 'relation'
     | 'media'
-    | 'taxonomy';
+    | 'taxonomy'
+    | 'group'
+    | 'repeater';
   label?: string;
   required?: boolean;
   description?: string;
@@ -43,12 +133,17 @@ export interface Field {
   relationTo?: string;
   taxonomy?: string;
   localized?: boolean;
+  /** Sub-fields for `group`/`repeater`. */
+  fields?: Field[];
+  minRows?: number;
+  maxRows?: number;
   admin?: {
     placeholder?: string;
     hidden?: boolean;
     width?: 'full' | 'half';
     help?: string;
     group?: string;
+    condition?: FieldCondition;
   };
 }
 
@@ -64,6 +159,8 @@ export interface CollectionSchema {
   defaultLocale?: string;
 }
 
+export type ReviewStatus = 'pending' | 'approved' | 'rejected' | null;
+
 export interface Entry {
   id: string;
   collection: string;
@@ -72,6 +169,10 @@ export interface Entry {
   data: Record<string, unknown>;
   authorId: string | null;
   publishedAt: string | null;
+  scheduledAt: string | null;
+  reviewStatus: ReviewStatus;
+  reviewNote: string | null;
+  reviewRequestedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

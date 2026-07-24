@@ -7,6 +7,17 @@ import { CollectionListPage } from './pages/CollectionListPage.js';
 import { EntryEditorPage } from './pages/EntryEditorPage.js';
 import { MediaPage } from './pages/MediaPage.js';
 import { SecurityPage } from './pages/SecurityPage.js';
+import { UsersPage } from './pages/UsersPage.js';
+import { AuditLogPage } from './pages/AuditLogPage.js';
+import { SearchPage } from './pages/SearchPage.js';
+import { GlobalEditorPage } from './pages/GlobalEditorPage.js';
+import { RedirectsPage } from './pages/RedirectsPage.js';
+import { CommentsPage } from './pages/CommentsPage.js';
+import { ReviewQueuePage } from './pages/ReviewQueuePage.js';
+import { CalendarPage } from './pages/CalendarPage.js';
+import { FormsPage } from './pages/FormsPage.js';
+import { FormSubmissionsPage } from './pages/FormSubmissionsPage.js';
+import { canAccessPage, getAdminPages } from './lib/pageRegistry.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -31,7 +42,32 @@ export function App() {
         <Route path="/collections/:slug/new" element={<EntryEditorPage />} />
         <Route path="/collections/:slug/:id" element={<EntryEditorPage />} />
         <Route path="/media" element={<MediaPage />} />
+        <Route path="/calendar" element={<CalendarPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/globals/:slug" element={<GlobalEditorPage />} />
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/redirects" element={<RedirectsPage />} />
+        )}
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/comments" element={<CommentsPage />} />
+        )}
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/review" element={<ReviewQueuePage />} />
+        )}
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/forms" element={<FormsPage />} />
+        )}
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/forms/:slug" element={<FormSubmissionsPage />} />
+        )}
         <Route path="/security" element={<SecurityPage />} />
+        {user.role === 'admin' && <Route path="/users" element={<UsersPage />} />}
+        {user.role === 'admin' && <Route path="/audit-log" element={<AuditLogPage />} />}
+        {getAdminPages()
+          .filter((page) => canAccessPage(page, user.role))
+          .map((page) => (
+            <Route key={page.path} path={page.path} element={<page.component />} />
+          ))}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

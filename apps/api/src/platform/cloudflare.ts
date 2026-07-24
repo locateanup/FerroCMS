@@ -27,6 +27,7 @@ function cacheRequest(key: string): Request {
 interface WorkersCache {
   match(request: Request): Promise<Response | undefined>;
   put(request: Request, response: Response): Promise<void>;
+  delete(request: Request): Promise<boolean>;
 }
 
 /**
@@ -59,6 +60,9 @@ export function cfCache(): CacheAdapter {
       });
       await workersDefaultCache().put(cacheRequest(key), response);
     },
+    async delete(key) {
+      await workersDefaultCache().delete(cacheRequest(key));
+    },
   };
 }
 
@@ -77,5 +81,8 @@ export function configFromEnv(env: Env): AppConfig {
     siteUrl: env.SITE_URL,
     webhookUrls: csv(env.WEBHOOK_URLS),
     webhookSecret: env.WEBHOOK_SECRET,
+    slackWebhookUrl: env.SLACK_WEBHOOK_URL,
+    discordWebhookUrl: env.DISCORD_WEBHOOK_URL,
+    notifyEmailTo: env.NOTIFY_EMAIL_TO,
   };
 }

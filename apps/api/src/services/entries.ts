@@ -9,6 +9,8 @@ import {
   type ResolvedCollection,
 } from '@ferrocms/core';
 import type { AuthUser } from '../env.js';
+import { logAudit } from './audit.js';
+import { indexEntry, removeFromIndex } from './search.js';
 
 type Data = Record<string, unknown>;
 
@@ -78,6 +80,15 @@ export async function listEntries(
   return { items, total: count?.value ?? 0 };
 }
 
+/** Every entry in a collection, regardless of status — for export/backup. */
+export async function listAllEntries(db: Db, collection: string): Promise<Entry[]> {
+  return db
+    .select()
+    .from(entries)
+    .where(eq(entries.collection, collection))
+    .orderBy(desc(entries.createdAt));
+}
+
 export async function getEntry(db: Db, collection: string, id: string): Promise<Entry | null> {
   const [row] = await db
     .select()
@@ -104,6 +115,8 @@ export interface CreateInput {
   collection: ResolvedCollection;
   data: Data;
   status: EntryStatus;
+  /** Only persisted when `status` is `'scheduled'`. */
+  scheduledAt?: Date | null;
   user: AuthUser | null;
 }
 
@@ -119,6 +132,7 @@ export async function createEntry(db: Db, input: CreateInput): Promise<Entry> {
 
   const slug = resolveSlug(collection, data);
   const publishedAt = status === 'published' ? new Date() : null;
+  const scheduledAt = status === 'scheduled' ? (input.scheduledAt ?? null) : null;
 
   const [row] = await db
     .insert(entries)
@@ -129,6 +143,7 @@ export async function createEntry(db: Db, input: CreateInput): Promise<Entry> {
       data,
       authorId: user?.id ?? null,
       publishedAt,
+      scheduledAt,
     })
     .returning();
 
@@ -139,6 +154,14 @@ export async function createEntry(db: Db, input: CreateInput): Promise<Entry> {
     doc: created,
     user: accessUser(user),
   });
+  await logAudit(db, {
+    userId: user?.id ?? null,
+    action: 'entry.create',
+    collection: created.collection,
+    entryId: created.id,
+    details: { status: created.status },
+  });
+  await indexEntry(db, collection, created);
   return created;
 }
 
@@ -147,6 +170,8 @@ export interface UpdateInput {
   existing: Entry;
   data?: Data;
   status?: EntryStatus;
+  /** `undefined` = leave as-is, `null` = clear. Ignored unless the resulting status is `'scheduled'`. */
+  scheduledAt?: Date | null;
   user: AuthUser | null;
 }
 
@@ -167,10 +192,16 @@ export async function updateEntry(db: Db, input: UpdateInput): Promise<Entry> {
     nextStatus === 'published' && existing.status !== 'published'
       ? new Date()
       : existing.publishedAt;
+  const scheduledAt =
+    nextStatus !== 'scheduled'
+      ? null
+      : input.scheduledAt !== undefined
+        ? input.scheduledAt
+        : existing.scheduledAt;
 
   const [row] = await db
     .update(entries)
-    .set({ data, slug, status: nextStatus, publishedAt, updatedAt: new Date() })
+    .set({ data, slug, status: nextStatus, publishedAt, scheduledAt, updatedAt: new Date() })
     .where(eq(entries.id, existing.id))
     .returning();
 
@@ -182,11 +213,26 @@ export async function updateEntry(db: Db, input: UpdateInput): Promise<Entry> {
     previous: existing,
     user: accessUser(user),
   });
+  await logAudit(db, {
+    userId: user?.id ?? null,
+    action: 'entry.update',
+    collection: updated.collection,
+    entryId: updated.id,
+    details: { status: updated.status, previousStatus: existing.status },
+  });
+  await indexEntry(db, collection, updated);
   return updated;
 }
 
-export async function deleteEntry(db: Db, id: string): Promise<void> {
-  await db.delete(entries).where(eq(entries.id, id));
+export async function deleteEntry(db: Db, entry: Entry, user: AuthUser | null): Promise<void> {
+  await db.delete(entries).where(eq(entries.id, entry.id));
+  await logAudit(db, {
+    userId: user?.id ?? null,
+    action: 'entry.delete',
+    collection: entry.collection,
+    entryId: entry.id,
+  });
+  await removeFromIndex(db, entry.id);
 }
 
 /** Write an immutable snapshot into the revisions table. */

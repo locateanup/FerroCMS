@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import type { Field } from './fields.js';
+import { evaluateCondition, type Field } from './fields.js';
 import { richTextValueSchema } from './richtext.js';
 
 export type FieldSchemaFactory = (field: Field) => z.ZodTypeAny;
@@ -24,7 +24,7 @@ export function unregisterFieldType(type: string): void {
   customFieldTypes.delete(type);
 }
 
-function fieldSchema(field: Field): z.ZodTypeAny {
+function fieldSchema(field: Field, opts: BuildEntrySchemaOptions): z.ZodTypeAny {
   const custom = customFieldTypes.get(field.type);
   if (custom) return custom(field);
 
@@ -75,6 +75,14 @@ function fieldSchema(field: Field): z.ZodTypeAny {
       const ref = z.string();
       return field.many === false ? ref : z.array(ref);
     }
+    case 'group':
+      return buildEntrySchema(field.fields, opts);
+    case 'repeater': {
+      let s = z.array(buildEntrySchema(field.fields, opts));
+      if (field.minRows !== undefined) s = s.min(field.minRows);
+      if (field.maxRows !== undefined) s = s.max(field.maxRows);
+      return s;
+    }
     default:
       // Reached only for a custom field type (see customField.ts) that was
       // never registered with registerFieldType() — fail loudly rather than
@@ -100,23 +108,54 @@ export interface BuildEntrySchemaOptions {
  *   A localized field's `required` is not enforced per-locale — an entry may
  *   have translations filled in incrementally.
  */
-export function buildEntrySchema(
-  fields: Field[],
-  opts: BuildEntrySchemaOptions = {},
-): z.ZodObject<z.ZodRawShape> {
+export function buildEntrySchema(fields: Field[], opts: BuildEntrySchemaOptions = {}): z.ZodTypeAny {
   const shape: z.ZodRawShape = {};
+  // Fields whose `required` only applies when their `admin.condition` holds —
+  // enforced below via superRefine, since whether they're required depends on
+  // sibling data, not on the field in isolation.
+  const conditionallyRequired: Field[] = [];
+
   for (const field of fields) {
-    let schema = fieldSchema(field);
+    let schema = fieldSchema(field, opts);
     if (field.localized && opts.locales && opts.locales.length > 0) {
       schema = z.record(z.enum(opts.locales as [string, ...string[]]), schema).optional();
     } else {
+      const condition = field.admin?.condition;
       const isRequired = field.required === true && !opts.partial;
-      if (!isRequired) schema = schema.optional();
+      if (isRequired && condition) {
+        conditionallyRequired.push(field);
+        schema = schema.optional();
+      } else if (!isRequired) {
+        schema = schema.optional();
+      }
     }
     shape[field.name] = schema;
   }
+
   // Reject unknown keys so typos don't silently persist.
-  return z.object(shape).strict();
+  const base = z.object(shape).strict();
+  if (conditionallyRequired.length === 0) return base;
+
+  return base.superRefine((data, ctx) => {
+    for (const field of conditionallyRequired) {
+      const condition = field.admin!.condition!;
+      if (!evaluateCondition(condition, data)) continue;
+      const value = (data as Record<string, unknown>)[field.name];
+      if (value === undefined || value === null || value === '') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: [field.name],
+          message: `Required when "${condition.field}" ${
+            condition.equals !== undefined
+              ? `is ${JSON.stringify(condition.equals)}`
+              : condition.notEquals !== undefined
+                ? `is not ${JSON.stringify(condition.notEquals)}`
+                : 'is truthy'
+          }.`,
+        });
+      }
+    }
+  });
 }
 
 export interface ValidationResult {

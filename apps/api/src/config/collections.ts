@@ -14,7 +14,6 @@ import {
   defineTaxonomy,
   type ResolvedCollection,
 } from '@ferrocms/core';
-import { auditLogPlugin } from '../plugins/auditLog.js';
 
 export const authors = defineCollection({
   slug: 'authors',
@@ -54,6 +53,28 @@ export const posts = defineCollection({
       defaultValue: false,
       access: { update: atLeast('editor') },
     },
+    // Conditional field: only shown (and only required) once "Featured" is checked.
+    {
+      name: 'featuredNote',
+      type: 'text',
+      maxLength: 200,
+      required: true,
+      admin: {
+        condition: { field: 'featured', truthy: true },
+        help: 'Shown once "Featured" is checked — why this post is featured.',
+      },
+    },
+    // Repeater: a variable-length list of sub-fields, stored as an array.
+    {
+      name: 'relatedLinks',
+      type: 'repeater',
+      maxRows: 5,
+      admin: { group: 'Related' },
+      fields: [
+        { name: 'label', type: 'text', required: true, maxLength: 80 },
+        { name: 'url', type: 'text', required: true, maxLength: 500 },
+      ],
+    },
   ],
 });
 
@@ -62,8 +83,9 @@ export const pages = defineCollection({
   seo: { urlPattern: '/:slug' },
   admin: { icon: 'file', useAsTitle: 'title' },
   // i18n: body is translated per locale; title/slug stay single-locale (the
-  // URL is the same page regardless of language in this demo).
-  locales: ['en', 'fr'],
+  // URL is the same page regardless of language in this demo). Arabic
+  // demonstrates the RTL editor flip + translation-status indicators.
+  locales: ['en', 'fr', 'ar'],
   defaultLocale: 'en',
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 200 },
@@ -78,11 +100,10 @@ export const pages = defineCollection({
   },
 });
 
-// Plugins can contribute collections and/or merge hooks into existing ones —
-// see plugins/auditLog.ts for a minimal example.
+// Plugins can contribute collections and/or merge hooks into existing ones.
 export const collections: ResolvedCollection[] = applyPlugins(
   [posts, pages, authors, categories, tags],
-  [auditLogPlugin],
+  [],
 );
 
 export const registry = buildRegistry(collections);

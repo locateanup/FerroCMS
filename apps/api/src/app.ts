@@ -10,9 +10,21 @@ import { toErrorResponse } from './lib/errors.js';
 import { authRouter } from './routes/auth.js';
 import { entriesRouter } from './routes/entries.js';
 import { mediaRouter } from './routes/media.js';
+import { usersRouter } from './routes/users.js';
+import { systemRouter } from './routes/system.js';
+import { auditRouter } from './routes/audit.js';
+import { searchRouter } from './routes/search.js';
+import { globalsRouter } from './routes/globals.js';
+import { redirectsRouter } from './routes/redirects.js';
+import { commentsRouter } from './routes/comments.js';
+import { reviewRouter } from './routes/review.js';
+import { calendarRouter } from './routes/calendar.js';
+import { formsRouter } from './routes/forms.js';
+import { dashboardRouter } from './routes/dashboard.js';
 import { robotsHandler, sitemapHandler } from './routes/seo.js';
 import { collections } from './config/collections.js';
 import { yoga } from './graphql/index.js';
+import type { EmailProvider } from './lib/email.js';
 
 /** Everything a request needs, resolved per platform (Workers or Node). */
 export interface PlatformContext {
@@ -21,6 +33,7 @@ export interface PlatformContext {
   kv: KVAdapter;
   cache: CacheAdapter;
   config: AppConfig;
+  email: EmailProvider;
 }
 
 export type MakeContext = (c: Context<AppBindings>) => PlatformContext;
@@ -54,6 +67,7 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
     c.set('kv', ctx.kv);
     c.set('cache', ctx.cache);
     c.set('config', ctx.config);
+    c.set('email', ctx.email);
     c.set('user', await resolveUser(c));
     await next();
   });
@@ -102,6 +116,17 @@ export function createApp(makeContext: MakeContext): Hono<AppBindings> {
   // Register specific routers before the catch-all /:collection routes.
   app.route('/api/auth', authRouter);
   app.route('/api/media', mediaRouter);
+  app.route('/api/users', usersRouter);
+  app.route('/api/audit-log', auditRouter);
+  app.route('/api/search', searchRouter);
+  app.route('/api/globals', globalsRouter);
+  app.route('/api/redirects', redirectsRouter);
+  app.route('/api/comments', commentsRouter);
+  app.route('/api/review', reviewRouter);
+  app.route('/api/calendar', calendarRouter);
+  app.route('/api/forms', formsRouter);
+  app.route('/api/dashboard', dashboardRouter);
+  app.route('/api/system', systemRouter);
   app.route('/api', entriesRouter);
 
   return app;

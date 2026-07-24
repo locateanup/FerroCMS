@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import {
+  atLeast,
   ENTRY_STATUSES,
   filterFieldsForRead,
   filterFieldsForWrite,
@@ -17,8 +18,11 @@ import { errors } from '../lib/errors.js';
 import { background } from '../lib/background.js';
 import { sendWebhooks, type WebhookEventType } from '../lib/webhooks.js';
 import { createPreviewToken, verifyPreviewToken } from '../lib/previewToken.js';
+import { purgeCollectionCache, trackListCacheKey } from '../lib/cachePurge.js';
+import { notifyAll } from '../lib/notifications.js';
 import type { Entry } from '@ferrocms/db';
 import * as svc from '../services/entries.js';
+import * as reviewSvc from '../services/review.js';
 
 const router = new Hono<AppBindings>();
 
@@ -43,15 +47,64 @@ function emitWebhook(c: Context<AppBindings>, entry: Entry, event: WebhookEventT
   );
 }
 
+function entryTitle(collection: ResolvedCollection, entry: Entry): string {
+  const value = (entry.data as Record<string, unknown>)[collection.admin.useAsTitle];
+  return typeof value === 'string' ? value : entry.id;
+}
+
+/** Slack/Discord/email notification in the background — no-op if nothing's configured. */
+function notifyEvent(
+  c: Context<AppBindings>,
+  subject: string,
+  message: string,
+): void {
+  background(c, notifyAll(c.get('config'), c.get('email'), subject, message));
+}
+
 const statusSchema = z.enum(ENTRY_STATUSES);
+const scheduledAtSchema = z.coerce.date().nullable().optional();
 const createBody = z.object({
   data: z.record(z.unknown()).default({}),
   status: statusSchema.optional(),
+  scheduledAt: scheduledAtSchema,
 });
 const updateBody = z.object({
   data: z.record(z.unknown()).optional(),
   status: statusSchema.optional(),
+  scheduledAt: scheduledAtSchema,
 });
+
+const bulkStatusSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1).max(200),
+  status: statusSchema,
+});
+const bulkIdsSchema = z.object({ ids: z.array(z.string().min(1)).min(1).max(200) });
+
+interface BulkResult {
+  succeeded: string[];
+  failed: Array<{ id: string; error: string }>;
+}
+
+/**
+ * A `'scheduled'` entry always needs a future `scheduledAt` — resolve it from
+ * the request (falling back to what's already stored, on update) and enforce
+ * that. Any other status clears it (the publish sweep only looks at
+ * `'scheduled'` rows, so a stale date left on a published/draft entry would be
+ * meaningless — and confusing if the entry is rescheduled without a new date).
+ */
+function resolveScheduledAt(
+  status: EntryStatus | undefined,
+  provided: Date | null | undefined,
+  existing: Date | null | undefined,
+): Date | null {
+  if (status !== 'scheduled') return null;
+  const value = provided !== undefined ? provided : (existing ?? null);
+  if (!value) throw errors.badRequest('A scheduled entry requires "scheduledAt".');
+  if (value.getTime() <= Date.now()) {
+    throw errors.badRequest('"scheduledAt" must be in the future.');
+  }
+  return value;
+}
 
 function requireCollection(slug: string): ResolvedCollection {
   const collection = getCollection(slug);
@@ -101,8 +154,18 @@ function cachedJson(cached: { body: string; contentType: string }): Response {
   });
 }
 
-/** Serve fresh JSON, caching it in the background for public reads only. */
-function freshJson(c: Context<AppBindings>, payload: unknown, cacheKey: string | null): Response {
+/**
+ * Serve fresh JSON, caching it in the background for public reads only. List
+ * reads pass their own collection so the cache key gets recorded — see
+ * lib/cachePurge.ts — letting a write purge it immediately instead of
+ * everyone waiting out the TTL.
+ */
+function freshJson(
+  c: Context<AppBindings>,
+  payload: unknown,
+  cacheKey: string | null,
+  listCollection?: string,
+): Response {
   const body = JSON.stringify(payload);
   if (cacheKey) {
     background(
@@ -111,6 +174,9 @@ function freshJson(c: Context<AppBindings>, payload: unknown, cacheKey: string |
         .get('cache')
         .put(cacheKey, { body, contentType: 'application/json' }, PUBLIC_CACHE_TTL_SECONDS),
     );
+    if (listCollection) {
+      background(c, trackListCacheKey(c.get('kv'), listCollection, cacheKey));
+    }
   }
   return new Response(body, {
     headers: { 'content-type': 'application/json', ...(cacheKey ? { 'x-cache': 'MISS' } : {}) },
@@ -156,7 +222,20 @@ router.get('/:collection', async (c) => {
     ...entry,
     data: filterFieldsForRead(collection.fields, entry.data as Record<string, unknown>, args),
   }));
-  return freshJson(c, { ...result, items, limit, offset }, cacheKey);
+  return freshJson(c, { ...result, items, limit, offset }, cacheKey, collection.slug);
+});
+
+// Export every entry in a collection as JSON (full data, all statuses) — for
+// backup or migrating between environments. Same "update" access as editing
+// the collection, since a full unfiltered dump is a bulk data operation, not
+// a normal scoped read. Registered before the dynamic /:collection/:id route
+// below — a static "export" segment must win over `:id` matching it literally.
+router.get('/:collection/export', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  enforce(c, resolveAccess(collection.access).update);
+
+  const items = await svc.listAllEntries(c.get('db'), collection.slug);
+  return c.json({ collection: collection.slug, items });
 });
 
 // Get one entry by id.
@@ -193,19 +272,63 @@ router.post('/:collection', async (c) => {
   const validation = validateEntry(collection.fields, writable, { locales: collection.locales });
   if (!validation.success) throw errors.validation(validation.errors);
 
+  const status = body.status ?? 'draft';
+  const scheduledAt = resolveScheduledAt(status, body.scheduledAt, undefined);
+
   try {
     const entry = await svc.createEntry(c.get('db'), {
       collection,
       data: validation.data!,
-      status: body.status ?? 'draft',
+      status,
+      scheduledAt,
       user,
     });
     emitWebhook(c, entry, entry.status === 'published' ? 'entry.published' : 'entry.created');
+    await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+    if (entry.status === 'published') {
+      notifyEvent(
+        c,
+        'FerroCMS: entry published',
+        `Published: "${entryTitle(collection, entry)}" in ${collection.slug}.`,
+      );
+    }
     return c.json(entry, 201);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
     throw err;
   }
+});
+
+// Bulk status change (publish/draft/archive/... many at once). Same "update"
+// access as editing one entry. Best-effort per id — one bad id doesn't fail
+// the whole batch; failures are reported back individually. Registered
+// before the dynamic /:collection/:id route below — a static "bulk" segment
+// must win over `:id` matching it literally.
+router.patch('/:collection/bulk', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const user = enforce(c, resolveAccess(collection.access).update);
+  const body = await parseBody(c, bulkStatusSchema);
+
+  const result: BulkResult = { succeeded: [], failed: [] };
+  for (const id of body.ids) {
+    try {
+      const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+      if (!existing) throw errors.notFound('Entry');
+      const scheduledAt = resolveScheduledAt(body.status, undefined, existing.scheduledAt);
+      await svc.updateEntry(c.get('db'), {
+        collection,
+        existing,
+        status: body.status,
+        scheduledAt,
+        user,
+      });
+      result.succeeded.push(id);
+    } catch (err) {
+      result.failed.push({ id, error: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  }
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+  return c.json(result);
 });
 
 // Update an entry.
@@ -228,16 +351,31 @@ router.patch('/:collection/:id', async (c) => {
     body.data = validation.data;
   }
 
+  const scheduledAt = resolveScheduledAt(
+    body.status ?? existing.status,
+    body.scheduledAt,
+    existing.scheduledAt,
+  );
+
   try {
     const entry = await svc.updateEntry(c.get('db'), {
       collection,
       existing,
       data: body.data,
       status: body.status,
+      scheduledAt,
       user,
     });
     const justPublished = existing.status !== 'published' && entry.status === 'published';
     emitWebhook(c, entry, justPublished ? 'entry.published' : 'entry.updated');
+    await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
+    if (justPublished) {
+      notifyEvent(
+        c,
+        'FerroCMS: entry published',
+        `Published: "${entryTitle(collection, entry)}" in ${collection.slug}.`,
+      );
+    }
     return c.json(entry);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
@@ -245,17 +383,41 @@ router.patch('/:collection/:id', async (c) => {
   }
 });
 
+// Bulk delete. Same "delete" access as deleting one entry. Registered before
+// the dynamic /:collection/:id route below — a static "bulk" segment must
+// win over `:id` matching it literally.
+router.delete('/:collection/bulk', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const user = enforce(c, resolveAccess(collection.access).delete);
+  const body = await parseBody(c, bulkIdsSchema);
+
+  const result: BulkResult = { succeeded: [], failed: [] };
+  for (const id of body.ids) {
+    try {
+      const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+      if (!existing) throw errors.notFound('Entry');
+      await svc.deleteEntry(c.get('db'), existing, user);
+      result.succeeded.push(id);
+    } catch (err) {
+      result.failed.push({ id, error: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  }
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+  return c.json(result);
+});
+
 // Delete an entry.
 router.delete('/:collection/:id', async (c) => {
   const collection = requireCollection(c.req.param('collection'));
   const id = c.req.param('id');
-  enforce(c, resolveAccess(collection.access).delete, id);
+  const user = enforce(c, resolveAccess(collection.access).delete, id);
 
   const existing = await svc.getEntry(c.get('db'), collection.slug, id);
   if (!existing) throw errors.notFound('Entry');
 
-  await svc.deleteEntry(c.get('db'), id);
+  await svc.deleteEntry(c.get('db'), existing, user);
   emitWebhook(c, existing, 'entry.deleted');
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
   return c.body(null, 204);
 });
 
@@ -334,11 +496,138 @@ router.post('/:collection/:id/revisions/:revisionId/restore', async (c) => {
       user,
     });
     emitWebhook(c, entry, 'entry.updated');
+    await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
     return c.json(entry);
   } catch (err) {
     if (isUniqueViolation(err)) throw errors.conflict('An entry with that slug already exists.');
     throw err;
   }
+});
+
+const reviewDecisionSchema = z.object({
+  approved: z.boolean(),
+  note: z.string().trim().max(2000).optional(),
+});
+
+// Editorial workflow, step 1: an author submits their own draft for review.
+// Requires the same "update" access as editing the entry itself — anyone who
+// can work on it can ask for it to be reviewed.
+router.post('/:collection/:id/submit-for-review', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, resolveAccess(collection.access).update, id);
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+
+  const entry = await reviewSvc.submitForReview(c.get('db'), existing, user);
+  notifyEvent(
+    c,
+    'FerroCMS: review requested',
+    `"${entryTitle(collection, entry)}" (${collection.slug}) was submitted for review${user?.email ? ` by ${user.email}` : ''}.`,
+  );
+  return c.json(entry);
+});
+
+// Editorial workflow, step 2: an editor+ approves (which publishes it) or
+// rejects it (with a note, back to the author). Review authority is a fixed
+// role check, not per-collection configurable, to keep the workflow simple.
+router.post('/:collection/:id/review', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, atLeast('editor'));
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+  if (existing.reviewStatus !== 'pending') {
+    throw errors.badRequest('This entry is not awaiting review.');
+  }
+
+  const body = await parseBody(c, reviewDecisionSchema);
+  const entry = await reviewSvc.reviewEntry(c.get('db'), existing, body, user);
+  if (body.approved) {
+    emitWebhook(c, entry, 'entry.published');
+    await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug, id);
+    notifyEvent(
+      c,
+      'FerroCMS: entry published',
+      `Published: "${entryTitle(collection, entry)}" in ${collection.slug} (approved on review).`,
+    );
+  }
+  return c.json(entry);
+});
+
+// Clone an entry: a new draft with the same data. Title (the useAsTitle
+// field, if it's a string) gets " (Copy)" appended and the slug cleared so
+// it regenerates from the new title — otherwise the clone would collide
+// with the original's unique slug.
+router.post('/:collection/:id/clone', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, resolveAccess(collection.access).create);
+
+  const existing = await svc.getEntry(c.get('db'), collection.slug, id);
+  if (!existing) throw errors.notFound('Entry');
+
+  const data: Record<string, unknown> = { ...(existing.data as Record<string, unknown>) };
+  const titleField = collection.admin.useAsTitle;
+  if (typeof data[titleField] === 'string') {
+    data[titleField] = `${data[titleField] as string} (Copy)`;
+  }
+  const slugField = collection.fields.find((f) => f.type === 'slug');
+  if (slugField) delete data[slugField.name];
+
+  const entry = await svc.createEntry(c.get('db'), {
+    collection,
+    data,
+    status: 'draft',
+    user,
+  });
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+  return c.json(entry, 201);
+});
+
+const importItemSchema = z.object({
+  data: z.record(z.unknown()),
+  status: statusSchema.optional(),
+});
+const importBodySchema = z.object({ items: z.array(importItemSchema).min(1).max(500) });
+
+// Import entries from JSON (the same shape /export produces). Best-effort —
+// each item is validated and created independently; one bad row doesn't
+// fail the batch.
+router.post('/:collection/import', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const user = enforce(c, resolveAccess(collection.access).update);
+  const body = await parseBody(c, importBodySchema);
+
+  const result: { created: string[]; failed: Array<{ index: number; error: string }> } = {
+    created: [],
+    failed: [],
+  };
+  for (const [index, item] of body.items.entries()) {
+    try {
+      const writable = filterFieldsForWrite(collection.fields, item.data, accessArgs(user));
+      const validation = validateEntry(collection.fields, writable, { locales: collection.locales });
+      if (!validation.success) {
+        throw new Error(validation.errors!.map((e) => `${e.path}: ${e.message}`).join('; '));
+      }
+      const status = item.status ?? 'draft';
+      const scheduledAt = resolveScheduledAt(status, undefined, undefined);
+      const entry = await svc.createEntry(c.get('db'), {
+        collection,
+        data: validation.data!,
+        status,
+        scheduledAt,
+        user,
+      });
+      result.created.push(entry.id);
+    } catch (err) {
+      result.failed.push({ index, error: err instanceof Error ? err.message : 'Unknown error' });
+    }
+  }
+  await purgeCollectionCache(c.get('cache'), c.get('kv'), collection.slug);
+  return c.json(result, 201);
 });
 
 export { router as entriesRouter };

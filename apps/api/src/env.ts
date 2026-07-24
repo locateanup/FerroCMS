@@ -1,6 +1,7 @@
 import type { Db } from '@ferrocms/db';
 import type { Role } from '@ferrocms/core';
 import type { AppConfig, CacheAdapter, KVAdapter, StorageAdapter } from './platform/types.js';
+import type { EmailProvider } from './lib/email.js';
 
 /** Cloudflare bindings + secrets available to the Worker. */
 export interface Env {
@@ -20,6 +21,11 @@ export interface Env {
   WEBHOOK_URLS?: string;
   /** Optional secret used to HMAC-sign webhook payloads. */
   WEBHOOK_SECRET?: string;
+  /** Slack/Discord incoming webhook URLs for publish/comment/review notifications. */
+  SLACK_WEBHOOK_URL?: string;
+  DISCORD_WEBHOOK_URL?: string;
+  /** Address notified by email on the same events. */
+  NOTIFY_EMAIL_TO?: string;
   /** R2 bucket for the media library. */
   MEDIA: R2Bucket;
 }
@@ -40,6 +46,7 @@ export interface Variables {
   kv: KVAdapter;
   cache: CacheAdapter;
   config: AppConfig;
+  email: EmailProvider;
 }
 
 export type AppBindings = { Bindings: Env; Variables: Variables };

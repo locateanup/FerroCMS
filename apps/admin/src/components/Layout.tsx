@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.js';
 import { useCollections } from '../lib/collections.js';
+import { useGlobals } from '../lib/globals.js';
+import { canAccessPage, getAdminPages } from '../lib/pageRegistry.js';
 
 function initials(name: string | null, email: string): string {
   if (name) {
@@ -14,6 +16,7 @@ function initials(name: string | null, email: string): string {
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const { collections } = useCollections();
+  const { globals } = useGlobals();
   const navigate = useNavigate();
 
   const content = collections.filter((c) => !c.taxonomyConfig.enabled);
@@ -27,6 +30,17 @@ export function Layout({ children }: { children: ReactNode }) {
           <span>FerroCMS</span>
         </div>
 
+        <input
+          type="search"
+          placeholder="Search…"
+          style={{ margin: '0 0 12px' }}
+          onKeyDown={(e) => {
+            if (e.key !== 'Enter') return;
+            const q = (e.target as HTMLInputElement).value.trim();
+            if (q) navigate(`/search?q=${encodeURIComponent(q)}`);
+          }}
+        />
+
         <div className="section-label">Content</div>
         {content.map((c) => (
           <NavLink
@@ -39,6 +53,9 @@ export function Layout({ children }: { children: ReactNode }) {
         ))}
         <NavLink to="/media" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
           <span>Media</span>
+        </NavLink>
+        <NavLink to="/calendar" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+          <span>Calendar</span>
         </NavLink>
 
         {taxonomies.length > 0 && (
@@ -56,13 +73,78 @@ export function Layout({ children }: { children: ReactNode }) {
           </>
         )}
 
+        {globals.length > 0 && (
+          <>
+            <div className="section-label">Globals</div>
+            {globals.map((g) => (
+              <NavLink
+                key={g.slug}
+                to={`/globals/${g.slug}`}
+                className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+              >
+                <span>{g.label}</span>
+              </NavLink>
+            ))}
+          </>
+        )}
+
         <div className="spacer" />
+        {(user?.role === 'admin' || user?.role === 'editor') && (
+          <NavLink to="/review" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+            <span>Review queue</span>
+          </NavLink>
+        )}
+        {(user?.role === 'admin' || user?.role === 'editor') && (
+          <NavLink
+            to="/comments"
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
+            <span>Comments</span>
+          </NavLink>
+        )}
+        {(user?.role === 'admin' || user?.role === 'editor') && (
+          <NavLink
+            to="/redirects"
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
+            <span>Redirects</span>
+          </NavLink>
+        )}
+        {(user?.role === 'admin' || user?.role === 'editor') && (
+          <NavLink to="/forms" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+            <span>Forms</span>
+          </NavLink>
+        )}
+        {user?.role === 'admin' && (
+          <NavLink to="/users" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+            <span>Users</span>
+          </NavLink>
+        )}
+        {user?.role === 'admin' && (
+          <NavLink
+            to="/audit-log"
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
+            <span>Audit log</span>
+          </NavLink>
+        )}
         <NavLink
           to="/security"
           className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
         >
           <span>Security</span>
         </NavLink>
+        {getAdminPages()
+          .filter((page) => canAccessPage(page, user?.role))
+          .map((page) => (
+            <NavLink
+              key={page.path}
+              to={page.path}
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+            >
+              <span>{page.label}</span>
+            </NavLink>
+          ))}
         <div className="user-chip">
           <div className="avatar">{user ? initials(user.name, user.email) : '?'}</div>
           <div style={{ lineHeight: 1.2, flex: 1 }}>

@@ -14,6 +14,7 @@ export interface FerroCmsEntry<T = Record<string, unknown>> {
   data: T;
   authorId: string | null;
   publishedAt: string | null;
+  scheduledAt: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -30,6 +31,17 @@ export interface FindOptions {
   slug?: string;
   limit?: number;
   offset?: number;
+}
+
+export interface FerroCmsComment {
+  id: string;
+  collection: string;
+  entryId: string;
+  authorName: string;
+  authorEmail: string | null;
+  body: string;
+  approved: boolean;
+  createdAt: string;
 }
 
 export interface ClientOptions {
@@ -78,6 +90,29 @@ export interface FerroCmsClient {
   ): Promise<FerroCmsEntry<T> | null>;
   /** Build a public URL for a media object key. */
   mediaUrl(key: string): string;
+  /** Fetch a global (site settings, header/footer nav, ...) — always one document per slug. */
+  getGlobal<T = Record<string, unknown>>(slug: string): Promise<T>;
+  /**
+   * Look up whether a path has a configured redirect — call this from your
+   * framework's own middleware/edge function to serve the actual HTTP
+   * redirect (the CMS only holds the mapping, not the site's routes).
+   */
+  resolveRedirect(path: string): Promise<{ toPath: string; statusCode: number } | null>;
+  /** Approved comments on one entry, oldest first. */
+  listComments(collection: string, entryId: string): Promise<FerroCmsComment[]>;
+  /** Submit a comment. It lands unapproved — an editor must moderate it in before `listComments` returns it. */
+  submitComment(input: {
+    collection: string;
+    entryId: string;
+    authorName: string;
+    authorEmail?: string;
+    body: string;
+  }): Promise<FerroCmsComment>;
+  /** Submit to a form defined in the CMS (contact form, signup, ...). `data` is validated server-side against the form's own fields. */
+  submitForm<T = Record<string, unknown>>(
+    formSlug: string,
+    data: Record<string, unknown>,
+  ): Promise<{ id: string; data: T }>;
 }
 
 export * from './seo.js';
@@ -145,6 +180,40 @@ export function createClient(options: ClientOptions): FerroCmsClient {
     },
     mediaUrl(key) {
       return `${base}/api/media/file/${key}`;
+    },
+    async getGlobal<T = Record<string, unknown>>(slug: string) {
+      const result = await request<{ data: T }>(`/api/globals/${encodeURIComponent(slug)}`);
+      return result.data;
+    },
+    async resolveRedirect(path: string) {
+      try {
+        return await request<{ toPath: string; statusCode: number }>(
+          `/api/redirects/resolve?path=${encodeURIComponent(path)}`,
+        );
+      } catch (err) {
+        if (err instanceof FerroCmsError && err.status === 404) return null;
+        throw err;
+      }
+    },
+    async listComments(collection, entryId) {
+      const result = await request<{ items: FerroCmsComment[] }>(
+        `/api/comments?collection=${encodeURIComponent(collection)}&entryId=${encodeURIComponent(entryId)}`,
+      );
+      return result.items;
+    },
+    submitComment(input) {
+      return request<FerroCmsComment>('/api/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(input),
+      });
+    },
+    submitForm<T = Record<string, unknown>>(formSlug: string, data: Record<string, unknown>) {
+      return request<{ id: string; data: T }>(`/api/forms/${encodeURIComponent(formSlug)}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
     },
   };
 }

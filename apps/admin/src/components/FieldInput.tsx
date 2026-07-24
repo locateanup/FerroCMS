@@ -1,3 +1,4 @@
+import { evaluateCondition } from '@ferrocms/core';
 import type { Field } from '../lib/types.js';
 import { getFieldRenderer } from '../lib/fieldRegistry.js';
 import { RelationInput } from './RelationInput.js';
@@ -9,14 +10,21 @@ interface Props {
   field: Field;
   value: unknown;
   onChange: (value: unknown) => void;
+  /**
+   * The data object this field's siblings live on — the whole entry for a
+   * top-level field, or just the enclosing group/repeater row for a nested
+   * one. Used to evaluate `admin.condition` against sibling values.
+   */
+  formData?: Record<string, unknown>;
 }
 
 function label(field: Field): string {
   return field.label ?? field.name.charAt(0).toUpperCase() + field.name.slice(1);
 }
 
-export function FieldInput({ field, value, onChange }: Props) {
+export function FieldInput({ field, value, onChange, formData = {} }: Props) {
   if (field.admin?.hidden) return null;
+  if (field.admin?.condition && !evaluateCondition(field.admin.condition, formData)) return null;
 
   const common = { id: field.name, placeholder: field.admin?.placeholder };
 
@@ -114,6 +122,65 @@ export function FieldInput({ field, value, onChange }: Props) {
         return <MediaInput value={value} onChange={onChange} />;
       case 'taxonomy':
         return <TaxonomyInput field={field} value={value} onChange={onChange} />;
+      case 'group': {
+        const groupValue = (value as Record<string, unknown>) ?? {};
+        return (
+          <div className="card" style={{ padding: 12 }}>
+            {(field.fields ?? []).map((sub) => (
+              <FieldInput
+                key={sub.name}
+                field={sub}
+                value={groupValue[sub.name]}
+                formData={groupValue}
+                onChange={(v) => onChange({ ...groupValue, [sub.name]: v })}
+              />
+            ))}
+          </div>
+        );
+      }
+      case 'repeater': {
+        const rows = Array.isArray(value) ? (value as Record<string, unknown>[]) : [];
+        const min = field.minRows ?? 0;
+        const max = field.maxRows;
+        return (
+          <div>
+            {rows.map((row, i) => (
+              <div
+                key={i}
+                className="card"
+                style={{ padding: 12, marginBottom: 8, position: 'relative' }}
+              >
+                <button
+                  type="button"
+                  className="btn btn-danger"
+                  style={{ position: 'absolute', top: 8, right: 8, padding: '2px 8px', fontSize: 11 }}
+                  disabled={rows.length <= min}
+                  onClick={() => onChange(rows.filter((_, j) => j !== i))}
+                >
+                  Remove
+                </button>
+                {(field.fields ?? []).map((sub) => (
+                  <FieldInput
+                    key={sub.name}
+                    field={sub}
+                    value={row[sub.name]}
+                    formData={row}
+                    onChange={(v) => onChange(rows.map((r, j) => (j === i ? { ...r, [sub.name]: v } : r)))}
+                  />
+                ))}
+              </div>
+            ))}
+            <button
+              type="button"
+              className="btn"
+              disabled={max !== undefined && rows.length >= max}
+              onClick={() => onChange([...rows, {}])}
+            >
+              + Add {label(field).replace(/s$/, '')}
+            </button>
+          </div>
+        );
+      }
       default:
         // text, slug
         return (

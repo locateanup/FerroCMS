@@ -129,12 +129,13 @@ Legend: ✅ implemented · 🚧 planned
 ### Extensibility
 
 - ✅ A real plugin system (`definePlugin` / `applyPlugins`) — plugins contribute new collections
-  and/or merge lifecycle hooks into existing ones, with no core changes (see `plugins/auditLog.ts`
-  for a minimal example)
+  and/or merge lifecycle hooks into existing ones, with no core changes
 - ✅ Custom field _renderers_ — swap in a different admin widget for any field type via a small
   registry (`registerFieldRenderer`), without touching `FieldInput.tsx`
 - ✅ Custom field _storage_ types — `registerFieldType()` lets a plugin add a wholly new field kind
   with its own Zod validation, via `defineCustomField()`, no core changes needed
+- ✅ Custom admin _pages_ — `registerAdminPage()` adds a whole route + nav entry to the admin (see
+  `apps/admin/src/plugins.ts`), not just a field widget
 - 🚧 Plugin marketplace / package registry, third-party integrations (GA4, ImageKit, Algolia, Stripe, …)
 
 ## How it compares
@@ -189,6 +190,10 @@ pnpm dev                               # runs the API worker + admin SPA
 ```
 
 Open the admin at **http://localhost:5173** and register the first admin account.
+
+For the full guide (content modeling, API reference, deployment, plugin authoring), run
+`pnpm --filter @ferrocms/docs dev` and open the printed local URL (or read the source under
+[`apps/docs/docs`](./apps/docs/docs)).
 
 ## Deployment
 

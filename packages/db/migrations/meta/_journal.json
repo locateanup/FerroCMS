@@ -22,6 +22,34 @@
       "when": 1784782628508,
       "tag": "0002_peaceful_stingray",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1784815437028,
+      "tag": "0003_boring_ken_ellis",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1784815451089,
+      "tag": "0004_search_index_fts5",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1784823113084,
+      "tag": "0005_normal_arclight",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1784824232248,
+      "tag": "0006_marvelous_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

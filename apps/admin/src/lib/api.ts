@@ -1,11 +1,22 @@
 import type {
+  AdminUser,
+  AuditLogEntry,
+  CalendarItem,
   CollectionSchema,
+  Comment,
   Entry,
   EntryStatus,
+  FormSchema,
+  FormSubmission,
+  GlobalEntry,
+  GlobalSchema,
   ListResult,
   LoginChallenge,
   MediaItem,
+  Redirect,
   Revision,
+  Role,
+  SearchHit,
   User,
 } from './types.js';
 
@@ -96,11 +107,47 @@ export const api = {
     return req<ListResult>(`/api/${slug}${qs ? `?${qs}` : ''}`);
   },
   getEntry: (slug: string, id: string) => req<Entry>(`/api/${slug}/${id}`),
-  createEntry: (slug: string, data: Record<string, unknown>, status: EntryStatus) =>
-    req<Entry>(`/api/${slug}`, { method: 'POST', body: JSON.stringify({ data, status }) }),
-  updateEntry: (slug: string, id: string, data: Record<string, unknown>, status: EntryStatus) =>
-    req<Entry>(`/api/${slug}/${id}`, { method: 'PATCH', body: JSON.stringify({ data, status }) }),
+  createEntry: (
+    slug: string,
+    data: Record<string, unknown>,
+    status: EntryStatus,
+    scheduledAt?: string | null,
+  ) =>
+    req<Entry>(`/api/${slug}`, {
+      method: 'POST',
+      body: JSON.stringify({ data, status, scheduledAt }),
+    }),
+  updateEntry: (
+    slug: string,
+    id: string,
+    data: Record<string, unknown>,
+    status: EntryStatus,
+    scheduledAt?: string | null,
+  ) =>
+    req<Entry>(`/api/${slug}/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ data, status, scheduledAt }),
+    }),
   deleteEntry: (slug: string, id: string) => req<void>(`/api/${slug}/${id}`, { method: 'DELETE' }),
+  cloneEntry: (slug: string, id: string) => req<Entry>(`/api/${slug}/${id}/clone`, { method: 'POST' }),
+
+  bulkUpdateStatus: (slug: string, ids: string[], status: EntryStatus) =>
+    req<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>(`/api/${slug}/bulk`, {
+      method: 'PATCH',
+      body: JSON.stringify({ ids, status }),
+    }),
+  bulkDelete: (slug: string, ids: string[]) =>
+    req<{ succeeded: string[]; failed: Array<{ id: string; error: string }> }>(`/api/${slug}/bulk`, {
+      method: 'DELETE',
+      body: JSON.stringify({ ids }),
+    }),
+  exportEntries: (slug: string) =>
+    req<{ collection: string; items: Entry[] }>(`/api/${slug}/export`),
+  importEntries: (slug: string, items: Array<{ data: Record<string, unknown>; status?: EntryStatus }>) =>
+    req<{ created: string[]; failed: Array<{ index: number; error: string }> }>(`/api/${slug}/import`, {
+      method: 'POST',
+      body: JSON.stringify({ items }),
+    }),
 
   listMedia: (folder?: string) =>
     req<{ items: MediaItem[] }>(
@@ -120,4 +167,67 @@ export const api = {
     req<{ items: Revision[] }>(`/api/${slug}/${id}/revisions`),
   restoreRevision: (slug: string, id: string, revisionId: string) =>
     req<Entry>(`/api/${slug}/${id}/revisions/${revisionId}/restore`, { method: 'POST' }),
+
+  submitForReview: (slug: string, id: string) =>
+    req<Entry>(`/api/${slug}/${id}/submit-for-review`, { method: 'POST' }),
+  reviewEntry: (slug: string, id: string, approved: boolean, note?: string) =>
+    req<Entry>(`/api/${slug}/${id}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ approved, note }),
+    }),
+  listReviewQueue: () => req<{ items: Entry[] }>('/api/review/queue'),
+
+  calendar: (from: Date, to: Date) =>
+    req<{ items: CalendarItem[] }>(
+      `/api/calendar?from=${from.toISOString()}&to=${to.toISOString()}`,
+    ),
+
+  listUsers: () => req<{ items: AdminUser[] }>('/api/users'),
+  createUser: (email: string, password: string, role: Role, name?: string) =>
+    req<AdminUser>('/api/users', {
+      method: 'POST',
+      body: JSON.stringify({ email, password, role, name }),
+    }),
+  updateUser: (id: string, patch: { name?: string; role?: Role; active?: boolean }) =>
+    req<AdminUser>(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  search: (q: string) => req<{ items: SearchHit[] }>(`/api/search?q=${encodeURIComponent(q)}`),
+
+  globals: () => req<{ items: GlobalSchema[] }>('/api/globals'),
+  getGlobal: (slug: string) => req<GlobalEntry>(`/api/globals/${slug}`),
+  updateGlobal: (slug: string, data: Record<string, unknown>) =>
+    req<GlobalEntry>(`/api/globals/${slug}`, { method: 'PATCH', body: JSON.stringify({ data }) }),
+
+  listRedirects: () => req<{ items: Redirect[] }>('/api/redirects'),
+  createRedirect: (fromPath: string, toPath: string, statusCode: Redirect['statusCode']) =>
+    req<Redirect>('/api/redirects', {
+      method: 'POST',
+      body: JSON.stringify({ fromPath, toPath, statusCode }),
+    }),
+  deleteRedirect: (id: string) => req<void>(`/api/redirects/${id}`, { method: 'DELETE' }),
+
+  listPendingComments: () => req<{ items: Comment[] }>('/api/comments/pending'),
+  approveComment: (id: string) => req<Comment>(`/api/comments/${id}`, { method: 'PATCH' }),
+  deleteComment: (id: string) => req<void>(`/api/comments/${id}`, { method: 'DELETE' }),
+
+  listAuditLog: (params: { limit?: number; offset?: number } = {}) => {
+    const q = new URLSearchParams();
+    if (params.limit) q.set('limit', String(params.limit));
+    if (params.offset) q.set('offset', String(params.offset));
+    const qs = q.toString();
+    return req<{ items: AuditLogEntry[] }>(`/api/audit-log${qs ? `?${qs}` : ''}`);
+  },
+
+  forms: () => req<{ items: FormSchema[] }>('/api/forms'),
+  listFormSubmissions: (slug: string) =>
+    req<{ items: FormSubmission[] }>(`/api/forms/${slug}/submissions`),
+  deleteFormSubmission: (slug: string, id: string) =>
+    req<void>(`/api/forms/${slug}/submissions/${id}`, { method: 'DELETE' }),
+
+  dashboard: () =>
+    req<{
+      perCollection: Record<string, Record<string, number>>;
+      pendingComments: number;
+      pendingReviews: number;
+    }>('/api/dashboard'),
 };
