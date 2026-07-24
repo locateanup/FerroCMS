@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { localize } from './i18n.js';
+import { isRtlLocale, localize } from './i18n.js';
 
 describe('localize', () => {
   const data = {
@@ -34,5 +34,18 @@ describe('localize', () => {
     const copy = { ...data, body: { ...data.body } };
     localize(data, ['body'], 'fr');
     expect(data).toEqual(copy);
+  });
+});
+
+describe('isRtlLocale', () => {
+  it('recognizes RTL languages, bare or with a region', () => {
+    expect(isRtlLocale('ar')).toBe(true);
+    expect(isRtlLocale('he-IL')).toBe(true);
+    expect(isRtlLocale('AR')).toBe(true);
+  });
+
+  it('returns false for LTR locales', () => {
+    expect(isRtlLocale('en')).toBe(false);
+    expect(isRtlLocale('fr-CA')).toBe(false);
   });
 });

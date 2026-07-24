@@ -1,11 +1,32 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { isRtlLocale } from '@ferrocms/core';
 import { api, ApiError } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
 import { useCollection } from '../lib/collections.js';
 import { FieldInput } from '../components/FieldInput.js';
 import { RevisionHistory } from '../components/RevisionHistory.js';
-import type { EntryStatus, ReviewStatus } from '../lib/types.js';
+import type { EntryStatus, Field, ReviewStatus } from '../lib/types.js';
+
+/** Whether a localized field has any content for a given locale. */
+function hasTranslation(data: Record<string, unknown>, field: Field, locale: string): boolean {
+  const value = (data[field.name] as Record<string, unknown> | undefined)?.[locale];
+  if (value === undefined || value === null || value === '') return false;
+  if (Array.isArray(value)) return value.length > 0;
+  return true;
+}
+
+/** 'complete' | 'partial' | 'empty' translation status for one locale. */
+function translationStatus(
+  data: Record<string, unknown>,
+  localizedFields: Field[],
+  locale: string,
+): 'complete' | 'partial' | 'empty' {
+  if (localizedFields.length === 0) return 'complete';
+  const done = localizedFields.filter((f) => hasTranslation(data, f, locale)).length;
+  if (done === 0) return 'empty';
+  return done === localizedFields.length ? 'complete' : 'partial';
+}
 
 /** ISO string -> the local-time value a `datetime-local` input expects. */
 function toLocalInputValue(iso: string): string {
@@ -37,6 +58,25 @@ export function EntryEditorPage() {
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locale, setLocale] = useState<string>('');
+
+  const localizedFields = collection?.fields.filter((f) => f.localized === true) ?? [];
+
+  function copyFromDefaultLocale() {
+    const defaultLocale = collection?.defaultLocale;
+    if (!defaultLocale || locale === defaultLocale) return;
+    setData((prev) => {
+      const next = { ...prev };
+      for (const field of localizedFields) {
+        const record = (prev[field.name] as Record<string, unknown> | undefined) ?? {};
+        if (hasTranslation(prev, field, locale)) continue; // don't clobber existing work
+        const sourceValue = record[defaultLocale];
+        if (sourceValue === undefined) continue;
+        next[field.name] = { ...record, [locale]: sourceValue };
+      }
+      return next;
+    });
+    setDirty(true);
+  }
 
   useEffect(() => {
     if (!collection || collection.locales.length === 0 || locale) return;
@@ -163,35 +203,67 @@ export function EntryEditorPage() {
       </div>
 
       {collection && collection.locales.length > 0 && (
-        <div className="row" style={{ gap: 6, marginBottom: 14 }}>
+        <div className="row" style={{ gap: 6, marginBottom: 14, alignItems: 'center' }}>
           <span className="muted" style={{ fontSize: 12, marginRight: 4 }}>
             Language:
           </span>
-          {collection.locales.map((l) => (
+          {collection.locales.map((l) => {
+            const tStatus = translationStatus(data, localizedFields, l);
+            return (
+              <button
+                key={l}
+                type="button"
+                className="btn"
+                style={
+                  l === locale
+                    ? {
+                        padding: '4px 12px',
+                        fontSize: 12,
+                        background: 'var(--text-primary)',
+                        color: 'var(--surface-2)',
+                      }
+                    : { padding: '4px 12px', fontSize: 12 }
+                }
+                onClick={() => setLocale(l)}
+                title={`Translation: ${tStatus}`}
+              >
+                <span
+                  aria-hidden
+                  style={{
+                    display: 'inline-block',
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    marginRight: 6,
+                    background:
+                      tStatus === 'complete' ? '#22c55e' : tStatus === 'partial' ? '#eab308' : '#94a3b8',
+                  }}
+                />
+                {l.toUpperCase()}
+                {isRtlLocale(l) && (
+                  <span className="muted" style={{ marginLeft: 4, fontSize: 10 }}>
+                    RTL
+                  </span>
+                )}
+              </button>
+            );
+          })}
+          {collection.defaultLocale && locale !== collection.defaultLocale && (
             <button
-              key={l}
               type="button"
               className="btn"
-              style={
-                l === locale
-                  ? {
-                      padding: '4px 12px',
-                      fontSize: 12,
-                      background: 'var(--text-primary)',
-                      color: 'var(--surface-2)',
-                    }
-                  : { padding: '4px 12px', fontSize: 12 }
-              }
-              onClick={() => setLocale(l)}
+              style={{ padding: '4px 12px', fontSize: 12 }}
+              onClick={copyFromDefaultLocale}
+              title={`Fill empty fields from ${collection.defaultLocale.toUpperCase()}`}
             >
-              {l.toUpperCase()}
+              Copy from {collection.defaultLocale.toUpperCase()}
             </button>
-          ))}
+          )}
         </div>
       )}
 
       <div className="editor-layout">
-        <div className="card">
+        <div className="card" dir={isRtlLocale(locale) ? 'rtl' : 'ltr'}>
           {collection ? (
             collection.fields.map((field, i) => {
               const group = field.admin?.group;

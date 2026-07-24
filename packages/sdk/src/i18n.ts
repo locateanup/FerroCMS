@@ -5,6 +5,19 @@
  * the same list you declared as `localized: true` in your collection config.
  */
 
+/**
+ * Right-to-left locale detection, for setting `dir="rtl"` when rendering
+ * localized content. Matches on the base language subtag, so `ar`, `ar-SA`,
+ * `AR` all count. Kept in sync with the same set in @ferrocms/core — the SDK
+ * stays dependency-free, so this is duplicated rather than imported.
+ */
+const RTL_LANGUAGES = new Set(['ar', 'he', 'fa', 'ur', 'yi', 'ps', 'sd', 'ug']);
+
+export function isRtlLocale(locale: string): boolean {
+  const lang = locale.split('-')[0]!.toLowerCase();
+  return RTL_LANGUAGES.has(lang);
+}
+
 export function localize<T extends Record<string, unknown>>(
   data: T,
   localizedFields: ReadonlyArray<keyof T>,

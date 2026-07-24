@@ -83,8 +83,9 @@ export const pages = defineCollection({
   seo: { urlPattern: '/:slug' },
   admin: { icon: 'file', useAsTitle: 'title' },
   // i18n: body is translated per locale; title/slug stay single-locale (the
-  // URL is the same page regardless of language in this demo).
-  locales: ['en', 'fr'],
+  // URL is the same page regardless of language in this demo). Arabic
+  // demonstrates the RTL editor flip + translation-status indicators.
+  locales: ['en', 'fr', 'ar'],
   defaultLocale: 'en',
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 200 },
