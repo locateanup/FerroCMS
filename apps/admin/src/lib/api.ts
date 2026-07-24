@@ -223,4 +223,11 @@ export const api = {
     req<{ items: FormSubmission[] }>(`/api/forms/${slug}/submissions`),
   deleteFormSubmission: (slug: string, id: string) =>
     req<void>(`/api/forms/${slug}/submissions/${id}`, { method: 'DELETE' }),
+
+  dashboard: () =>
+    req<{
+      perCollection: Record<string, Record<string, number>>;
+      pendingComments: number;
+      pendingReviews: number;
+    }>('/api/dashboard'),
 };
