@@ -191,6 +191,10 @@ pnpm dev                               # runs the API worker + admin SPA
 
 Open the admin at **http://localhost:5173** and register the first admin account.
 
+For the full guide (content modeling, API reference, deployment, plugin authoring), run
+`pnpm --filter @ferrocms/docs dev` and open the printed local URL (or read the source under
+[`apps/docs/docs`](./apps/docs/docs)).
+
 ## Deployment
 
 Same codebase, two runtimes — pick whichever fits your infrastructure. **A libSQL/Turso database is

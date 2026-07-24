@@ -8,6 +8,8 @@ dist/
 .next/
 .turbo/
 *.tsbuildinfo
+apps/docs/docs/.vitepress/dist/
+apps/docs/docs/.vitepress/cache/
 
 # cloudflare / wrangler
 .wrangler/
