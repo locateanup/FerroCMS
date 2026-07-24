@@ -1,0 +1,25 @@
+{
+  "name": "create-ferrocms",
+  "version": "0.1.0",
+  "description": "Scaffold a new FerroCMS project (API worker + admin SPA + core/db/sdk packages).",
+  "type": "module",
+  "bin": {
+    "create-ferrocms": "./dist/cli.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "tar": "^7.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "vitest": "^2.1.1"
+  }
+}
