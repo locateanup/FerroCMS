@@ -1,0 +1,25 @@
+{
+  "name": "@ferrocms/example-next-site",
+  "version": "0.0.0",
+  "private": true,
+  "description": "A real Next.js site consuming @ferrocms/sdk — proves the headless loop end-to-end.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@ferrocms/sdk": "workspace:*",
+    "next": "^14.2.15",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.5",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.0",
+    "typescript": "^5.6.2"
+  }
+}

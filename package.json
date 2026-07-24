@@ -9,7 +9,7 @@
     "node": ">=20"
   },
   "scripts": {
-    "build": "turbo run build",
+    "build": "turbo run build --filter=!./examples/*",
     "dev": "turbo run dev",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
