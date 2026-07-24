@@ -17,6 +17,7 @@ import { ReviewQueuePage } from './pages/ReviewQueuePage.js';
 import { CalendarPage } from './pages/CalendarPage.js';
 import { FormsPage } from './pages/FormsPage.js';
 import { FormSubmissionsPage } from './pages/FormSubmissionsPage.js';
+import { canAccessPage, getAdminPages } from './lib/pageRegistry.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -62,6 +63,11 @@ export function App() {
         <Route path="/security" element={<SecurityPage />} />
         {user.role === 'admin' && <Route path="/users" element={<UsersPage />} />}
         {user.role === 'admin' && <Route path="/audit-log" element={<AuditLogPage />} />}
+        {getAdminPages()
+          .filter((page) => canAccessPage(page, user.role))
+          .map((page) => (
+            <Route key={page.path} path={page.path} element={<page.component />} />
+          ))}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Layout>

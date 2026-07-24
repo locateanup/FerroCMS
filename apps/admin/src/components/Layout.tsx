@@ -3,6 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.js';
 import { useCollections } from '../lib/collections.js';
 import { useGlobals } from '../lib/globals.js';
+import { canAccessPage, getAdminPages } from '../lib/pageRegistry.js';
 
 function initials(name: string | null, email: string): string {
   if (name) {
@@ -133,6 +134,17 @@ export function Layout({ children }: { children: ReactNode }) {
         >
           <span>Security</span>
         </NavLink>
+        {getAdminPages()
+          .filter((page) => canAccessPage(page, user?.role))
+          .map((page) => (
+            <NavLink
+              key={page.path}
+              to={page.path}
+              className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+            >
+              <span>{page.label}</span>
+            </NavLink>
+          ))}
         <div className="user-chip">
           <div className="avatar">{user ? initials(user.name, user.email) : '?'}</div>
           <div style={{ lineHeight: 1.2, flex: 1 }}>
