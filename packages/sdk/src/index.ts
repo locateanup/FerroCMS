@@ -108,6 +108,11 @@ export interface FerroCmsClient {
     authorEmail?: string;
     body: string;
   }): Promise<FerroCmsComment>;
+  /** Submit to a form defined in the CMS (contact form, signup, ...). `data` is validated server-side against the form's own fields. */
+  submitForm<T = Record<string, unknown>>(
+    formSlug: string,
+    data: Record<string, unknown>,
+  ): Promise<{ id: string; data: T }>;
 }
 
 export * from './seo.js';
@@ -201,6 +206,13 @@ export function createClient(options: ClientOptions): FerroCmsClient {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(input),
+      });
+    },
+    submitForm<T = Record<string, unknown>>(formSlug: string, data: Record<string, unknown>) {
+      return request<{ id: string; data: T }>(`/api/forms/${encodeURIComponent(formSlug)}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
     },
   };

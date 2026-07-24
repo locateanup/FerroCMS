@@ -11,3 +11,4 @@ export * from './fieldAccess.js';
 export * from './plugin.js';
 export * from './customField.js';
 export * from './global.js';
+export * from './form.js';

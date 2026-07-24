@@ -166,4 +166,19 @@ describe('createClient', () => {
       body: 'Hi',
     });
   });
+
+  it('submitForm posts JSON to the right URL', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(jsonResponse({ id: '1', data: { name: 'Alice' } }, 201));
+    const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
+
+    const result = await client.submitForm<{ name: string }>('contact', { name: 'Alice' });
+
+    expect(result.data.name).toBe('Alice');
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('https://cms.test/api/forms/contact/submit');
+    expect(init.method).toBe('POST');
+    expect(JSON.parse(init.body as string)).toEqual({ name: 'Alice' });
+  });
 });

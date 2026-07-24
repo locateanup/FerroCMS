@@ -72,6 +72,19 @@ export interface SearchHit {
   snippet: string;
 }
 
+export interface FormSchema {
+  slug: string;
+  name: string;
+  fields: Field[];
+}
+
+export interface FormSubmission {
+  id: string;
+  formSlug: string;
+  data: Record<string, unknown>;
+  createdAt: string;
+}
+
 export interface AuditLogEntry {
   id: string;
   userId: string | null;

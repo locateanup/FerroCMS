@@ -6,6 +6,8 @@ import type {
   Comment,
   Entry,
   EntryStatus,
+  FormSchema,
+  FormSubmission,
   GlobalEntry,
   GlobalSchema,
   ListResult,
@@ -196,4 +198,10 @@ export const api = {
     const qs = q.toString();
     return req<{ items: AuditLogEntry[] }>(`/api/audit-log${qs ? `?${qs}` : ''}`);
   },
+
+  forms: () => req<{ items: FormSchema[] }>('/api/forms'),
+  listFormSubmissions: (slug: string) =>
+    req<{ items: FormSubmission[] }>(`/api/forms/${slug}/submissions`),
+  deleteFormSubmission: (slug: string, id: string) =>
+    req<void>(`/api/forms/${slug}/submissions/${id}`, { method: 'DELETE' }),
 };

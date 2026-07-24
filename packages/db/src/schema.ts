@@ -181,6 +181,21 @@ export const comments = sqliteTable(
   }),
 );
 
+export const formSubmissions = sqliteTable(
+  'form_submissions',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    formSlug: text('form_slug').notNull(),
+    data: text('data', { mode: 'json' }).$type<Record<string, unknown>>().notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => ({
+    formIdx: index('form_submissions_form_idx').on(t.formSlug, t.createdAt),
+  }),
+);
+
 /** Generic key/value store with optional expiry (sessions, cache). */
 export const kv = sqliteTable(
   'kv',
@@ -208,3 +223,5 @@ export type Redirect = typeof redirects.$inferSelect;
 export type NewRedirect = typeof redirects.$inferInsert;
 export type Comment = typeof comments.$inferSelect;
 export type NewComment = typeof comments.$inferInsert;
+export type FormSubmission = typeof formSubmissions.$inferSelect;
+export type NewFormSubmission = typeof formSubmissions.$inferInsert;

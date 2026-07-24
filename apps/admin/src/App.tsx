@@ -15,6 +15,8 @@ import { RedirectsPage } from './pages/RedirectsPage.js';
 import { CommentsPage } from './pages/CommentsPage.js';
 import { ReviewQueuePage } from './pages/ReviewQueuePage.js';
 import { CalendarPage } from './pages/CalendarPage.js';
+import { FormsPage } from './pages/FormsPage.js';
+import { FormSubmissionsPage } from './pages/FormSubmissionsPage.js';
 
 export function App() {
   const { user, loading } = useAuth();
@@ -50,6 +52,12 @@ export function App() {
         )}
         {(user.role === 'admin' || user.role === 'editor') && (
           <Route path="/review" element={<ReviewQueuePage />} />
+        )}
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/forms" element={<FormsPage />} />
+        )}
+        {(user.role === 'admin' || user.role === 'editor') && (
+          <Route path="/forms/:slug" element={<FormSubmissionsPage />} />
         )}
         <Route path="/security" element={<SecurityPage />} />
         {user.role === 'admin' && <Route path="/users" element={<UsersPage />} />}
