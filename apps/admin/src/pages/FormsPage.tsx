@@ -42,7 +42,9 @@ export function FormsPage() {
           {items.map((f) => (
             <Link key={f.slug} to={`/forms/${f.slug}`} className="table-row clickable">
               <span style={{ fontWeight: 500 }}>{f.name}</span>
-              <span className="muted">{f.fields.map((field) => field.label ?? field.name).join(', ')}</span>
+              <span className="muted">
+                {f.fields.map((field) => field.label ?? field.name).join(', ')}
+              </span>
             </Link>
           ))}
         </div>

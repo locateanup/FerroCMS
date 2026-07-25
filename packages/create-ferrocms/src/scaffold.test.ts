@@ -82,7 +82,9 @@ describe('scaffold (against this repo checkout as the template source)', () => {
     const pkg = JSON.parse(await readFile(path.join(targetDir, 'package.json'), 'utf8'));
     expect(pkg.name).toBe('my-test-cms');
     expect(pkg.scripts.build).toBe('turbo run build');
-    const apiPkg = JSON.parse(await readFile(path.join(targetDir, 'apps/api/package.json'), 'utf8'));
+    const apiPkg = JSON.parse(
+      await readFile(path.join(targetDir, 'apps/api/package.json'), 'utf8'),
+    );
     expect(apiPkg.name).toBe('@ferrocms/api');
 
     const readme = await readFile(path.join(targetDir, 'README.md'), 'utf8');

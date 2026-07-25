@@ -76,7 +76,9 @@ router.get('/resolve', async (c) => {
   if (!redirect) throw errors.notFound('Redirect');
 
   const body = JSON.stringify({ toPath: redirect.toPath, statusCode: redirect.statusCode });
-  await c.get('cache').put(cacheKey, { body, contentType: 'application/json' }, PUBLIC_CACHE_TTL_SECONDS);
+  await c
+    .get('cache')
+    .put(cacheKey, { body, contentType: 'application/json' }, PUBLIC_CACHE_TTL_SECONDS);
   return new Response(body, { headers: { 'content-type': 'application/json', 'x-cache': 'MISS' } });
 });
 

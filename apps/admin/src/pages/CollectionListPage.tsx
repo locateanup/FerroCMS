@@ -96,8 +96,11 @@ export function CollectionListPage() {
     setError(null);
     try {
       const text = await file.text();
-      const parsed = JSON.parse(text) as { items?: Array<{ data: Record<string, unknown>; status?: EntryStatus }> };
-      if (!slug || !Array.isArray(parsed.items)) throw new Error('Expected a JSON file with an "items" array.');
+      const parsed = JSON.parse(text) as {
+        items?: Array<{ data: Record<string, unknown>; status?: EntryStatus }>;
+      };
+      if (!slug || !Array.isArray(parsed.items))
+        throw new Error('Expected a JSON file with an "items" array.');
       const result = await api.importEntries(slug, parsed.items);
       if (result.failed.length > 0) {
         setError(`Imported ${result.created.length}, ${result.failed.length} row(s) failed.`);
@@ -173,7 +176,12 @@ export function CollectionListPage() {
         <div className="table">
           <div className="table-row table-head">
             <span>
-              <input type="checkbox" checked={allSelected} onChange={toggleAll} style={{ width: 'auto' }} />
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleAll}
+                style={{ width: 'auto' }}
+              />
             </span>
             <span>Title</span>
             <span>Slug</span>

@@ -8,73 +8,73 @@ control server-side, regardless of which door you come through.
 
 Session-based, backed by the database (no separate KV/Redis needed for sessions).
 
-| Route | Notes |
-|---|---|
+| Route                     | Notes                                 |
+| ------------------------- | ------------------------------------- |
 | `POST /api/auth/register` | First registered user becomes `admin` |
-| `POST /api/auth/login` | Sets a session cookie |
-| `POST /api/auth/logout` | — |
-| `GET /api/auth/me` | Current user, or `null` |
-| `POST /api/auth/2fa/*` | TOTP-based two-factor setup/verify |
+| `POST /api/auth/login`    | Sets a session cookie                 |
+| `POST /api/auth/logout`   | —                                     |
+| `GET /api/auth/me`        | Current user, or `null`               |
+| `POST /api/auth/2fa/*`    | TOTP-based two-factor setup/verify    |
 
 ## Collections (`/api/:collection`)
 
 Every `defineCollection` gets these routes automatically (`collection` = the collection's `slug`):
 
-| Method & path | Access | Notes |
-|---|---|---|
-| `GET /api/:collection` | collection's `read` | List, paginated (`limit`/`offset`), filterable |
-| `GET /api/:collection/export` | collection's `read` | Bulk export as JSON |
-| `GET /api/:collection/:id` | collection's `read` | Single entry |
-| `POST /api/:collection` | collection's `create` | Create |
-| `POST /api/:collection/import` | collection's `create` | Bulk import from JSON |
-| `PATCH /api/:collection/bulk` | collection's `update` | Bulk update by id list |
-| `PATCH /api/:collection/:id` | collection's `update` | Update |
-| `DELETE /api/:collection/bulk` | collection's `delete` | Bulk delete by id list |
-| `DELETE /api/:collection/:id` | collection's `delete` | Delete |
-| `POST /api/:collection/:id/clone` | collection's `create` | Duplicate an entry as a new draft |
-| `POST /api/:collection/:id/preview-token` | editor+ | Mint a short-lived draft preview token |
-| `GET /api/:collection/:id/preview` | token | Fetch the draft using a preview token |
-| `GET /api/:collection/:id/revisions` | collection's `read` | Revision history |
-| `POST /api/:collection/:id/revisions/:revisionId/restore` | collection's `update` | Restore a revision |
-| `POST /api/:collection/:id/submit-for-review` | author+ | Editorial workflow: request review |
-| `POST /api/:collection/:id/review` | editor+ | Approve/reject a pending review (`{approved, note?}`) |
+| Method & path                                             | Access                | Notes                                                 |
+| --------------------------------------------------------- | --------------------- | ----------------------------------------------------- |
+| `GET /api/:collection`                                    | collection's `read`   | List, paginated (`limit`/`offset`), filterable        |
+| `GET /api/:collection/export`                             | collection's `read`   | Bulk export as JSON                                   |
+| `GET /api/:collection/:id`                                | collection's `read`   | Single entry                                          |
+| `POST /api/:collection`                                   | collection's `create` | Create                                                |
+| `POST /api/:collection/import`                            | collection's `create` | Bulk import from JSON                                 |
+| `PATCH /api/:collection/bulk`                             | collection's `update` | Bulk update by id list                                |
+| `PATCH /api/:collection/:id`                              | collection's `update` | Update                                                |
+| `DELETE /api/:collection/bulk`                            | collection's `delete` | Bulk delete by id list                                |
+| `DELETE /api/:collection/:id`                             | collection's `delete` | Delete                                                |
+| `POST /api/:collection/:id/clone`                         | collection's `create` | Duplicate an entry as a new draft                     |
+| `POST /api/:collection/:id/preview-token`                 | editor+               | Mint a short-lived draft preview token                |
+| `GET /api/:collection/:id/preview`                        | token                 | Fetch the draft using a preview token                 |
+| `GET /api/:collection/:id/revisions`                      | collection's `read`   | Revision history                                      |
+| `POST /api/:collection/:id/revisions/:revisionId/restore` | collection's `update` | Restore a revision                                    |
+| `POST /api/:collection/:id/submit-for-review`             | author+               | Editorial workflow: request review                    |
+| `POST /api/:collection/:id/review`                        | editor+               | Approve/reject a pending review (`{approved, note?}`) |
 
 `GET /api/collections` returns every collection's field schema (functions stripped) so the admin — or
 any other client — can render forms without hardcoding field definitions.
 
 ## Globals (`/api/globals/:slug`)
 
-| Method & path | Notes |
-|---|---|
-| `GET /api/globals/:slug` | Read the single document |
+| Method & path              | Notes                          |
+| -------------------------- | ------------------------------ |
+| `GET /api/globals/:slug`   | Read the single document       |
 | `PATCH /api/globals/:slug` | Update it (editor+ by default) |
 
 ## Forms (`/api/forms`)
 
-| Method & path | Access | Notes |
-|---|---|---|
-| `GET /api/forms` | authenticated | List form schemas |
-| `POST /api/forms/:slug/submit` | public, rate-limited | Submit — validated against the form's fields |
-| `GET /api/forms/:slug/submissions` | editor+ | List submissions |
-| `DELETE /api/forms/:slug/submissions/:id` | editor+ | Remove a submission |
+| Method & path                             | Access               | Notes                                        |
+| ----------------------------------------- | -------------------- | -------------------------------------------- |
+| `GET /api/forms`                          | authenticated        | List form schemas                            |
+| `POST /api/forms/:slug/submit`            | public, rate-limited | Submit — validated against the form's fields |
+| `GET /api/forms/:slug/submissions`        | editor+              | List submissions                             |
+| `DELETE /api/forms/:slug/submissions/:id` | editor+              | Remove a submission                          |
 
 ## Other endpoints
 
-| Route | Notes |
-|---|---|
-| `GET /health` | Liveness check |
-| `GET /sitemap.xml` | Generated from published, non-`noindex` entries of SEO-enabled collections |
-| `GET /robots.txt` | Allows crawling, points at the sitemap |
-| `/api/media/*` | Upload/list/delete media (R2 on Workers, filesystem on Node) |
-| `/api/users/*` | Invite/list/deactivate users, role management (admin only) |
-| `/api/audit-log` | Persisted audit trail of writes (admin only) |
-| `/api/search` | Full-text search (FTS5) across collections |
-| `/api/redirects` | Redirect manager (admin only) |
-| `/api/comments` | Submit/moderate comments |
-| `/api/calendar` | Content calendar view (scheduled/published entries by date) |
-| `/api/dashboard` | Admin dashboard widget data |
-| `/api/system` | Version/health info for the admin's status page |
-| `GET`/`POST /graphql` | GraphQL, mirrors REST access control exactly |
+| Route                 | Notes                                                                      |
+| --------------------- | -------------------------------------------------------------------------- |
+| `GET /health`         | Liveness check                                                             |
+| `GET /sitemap.xml`    | Generated from published, non-`noindex` entries of SEO-enabled collections |
+| `GET /robots.txt`     | Allows crawling, points at the sitemap                                     |
+| `/api/media/*`        | Upload/list/delete media (R2 on Workers, filesystem on Node)               |
+| `/api/users/*`        | Invite/list/deactivate users, role management (admin only)                 |
+| `/api/audit-log`      | Persisted audit trail of writes (admin only)                               |
+| `/api/search`         | Full-text search (FTS5) across collections                                 |
+| `/api/redirects`      | Redirect manager (admin only)                                              |
+| `/api/comments`       | Submit/moderate comments                                                   |
+| `/api/calendar`       | Content calendar view (scheduled/published entries by date)                |
+| `/api/dashboard`      | Admin dashboard widget data                                                |
+| `/api/system`         | Version/health info for the admin's status page                            |
+| `GET`/`POST /graphql` | GraphQL, mirrors REST access control exactly                               |
 
 ## GraphQL
 

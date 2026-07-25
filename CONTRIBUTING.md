@@ -48,3 +48,21 @@ chromium`.
 
 Open an issue with reproduction steps, expected vs. actual behavior, and your environment. For security
 issues, follow [SECURITY.md](./SECURITY.md) instead of opening a public issue.
+
+## Versioning policy
+
+FerroCMS follows [Semantic Versioning](https://semver.org), with the pre-1.0 caveat SemVer itself
+defines: **while the major version is `0`, a minor bump (`0.x.0`) may contain breaking changes** —
+config-as-code shape, REST/GraphQL response shape, or the database schema. Patch releases (`0.x.y`)
+are fixes only, never intentionally breaking.
+
+- Releases are tagged on `main` (`vX.Y.Z`) and published as [GitHub
+  Releases](https://github.com/locateanup/FerroCMS/releases); each tag's notes summarize what changed,
+  and [CHANGELOG.md](./CHANGELOG.md) is the running log.
+- There is **no `/api/v1`-style API versioning yet** — the REST/GraphQL surface can change between
+  minor releases pre-1.0. This will change at 1.0.
+- **1.0.0** is the point where the config-as-code API, REST/GraphQL response shapes, and the database
+  schema are considered stable enough to commit to a deprecation policy for breaking changes. There's
+  no fixed date for it — it happens once the API has had real usage and stopped shifting.
+- Database migrations are additive by default; see [Upgrading &
+  migrations](./apps/docs/docs/migrations.md) for the upgrade process and known pre-1.0 limitations.

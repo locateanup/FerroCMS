@@ -46,9 +46,7 @@ export async function runScheduledPublish(
   await Promise.all(
     [...collectionsPublished].map((collection) => purgeCollectionCache(cache, kv, collection)),
   );
-  await Promise.all(
-    published.map((entry) => cache.delete(`one:${entry.collection}:${entry.id}`)),
-  );
+  await Promise.all(published.map((entry) => cache.delete(`one:${entry.collection}:${entry.id}`)));
 
   if (config.webhookUrls.length > 0) {
     await Promise.all(

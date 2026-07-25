@@ -108,7 +108,10 @@ export interface BuildEntrySchemaOptions {
  *   A localized field's `required` is not enforced per-locale — an entry may
  *   have translations filled in incrementally.
  */
-export function buildEntrySchema(fields: Field[], opts: BuildEntrySchemaOptions = {}): z.ZodTypeAny {
+export function buildEntrySchema(
+  fields: Field[],
+  opts: BuildEntrySchemaOptions = {},
+): z.ZodTypeAny {
   const shape: z.ZodRawShape = {};
   // Fields whose `required` only applies when their `admin.condition` holds —
   // enforced below via superRefine, since whether they're required depends on

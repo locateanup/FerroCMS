@@ -153,7 +153,13 @@ export function FieldInput({ field, value, onChange, formData = {} }: Props) {
                 <button
                   type="button"
                   className="btn btn-danger"
-                  style={{ position: 'absolute', top: 8, right: 8, padding: '2px 8px', fontSize: 11 }}
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    right: 8,
+                    padding: '2px 8px',
+                    fontSize: 11,
+                  }}
                   disabled={rows.length <= min}
                   onClick={() => onChange(rows.filter((_, j) => j !== i))}
                 >
@@ -165,7 +171,9 @@ export function FieldInput({ field, value, onChange, formData = {} }: Props) {
                     field={sub}
                     value={row[sub.name]}
                     formData={row}
-                    onChange={(v) => onChange(rows.map((r, j) => (j === i ? { ...r, [sub.name]: v } : r)))}
+                    onChange={(v) =>
+                      onChange(rows.map((r, j) => (j === i ? { ...r, [sub.name]: v } : r)))
+                    }
                   />
                 ))}
               </div>

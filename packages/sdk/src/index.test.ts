@@ -111,9 +111,7 @@ describe('createClient', () => {
     const fetchMock = vi
       .fn()
       .mockResolvedValueOnce(jsonResponse({ toPath: '/new-url', statusCode: 301 }))
-      .mockResolvedValueOnce(
-        jsonResponse({ error: { code: 'not_found', message: 'x' } }, 404),
-      );
+      .mockResolvedValueOnce(jsonResponse({ error: { code: 'not_found', message: 'x' } }, 404));
     const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
 
     const hit = await client.resolveRedirect('/old-url');
@@ -127,7 +125,16 @@ describe('createClient', () => {
   it('listComments fetches the right URL and returns only approved comments', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse({
-        items: [{ id: '1', collection: 'posts', entryId: 'p1', authorName: 'Alice', body: 'Hi', approved: true }],
+        items: [
+          {
+            id: '1',
+            collection: 'posts',
+            entryId: 'p1',
+            authorName: 'Alice',
+            body: 'Hi',
+            approved: true,
+          },
+        ],
       }),
     );
     const client = createClient({ url: 'https://cms.test', fetch: fetchMock });
@@ -142,7 +149,14 @@ describe('createClient', () => {
   it('submitComment posts JSON to the right URL', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       jsonResponse(
-        { id: '1', collection: 'posts', entryId: 'p1', authorName: 'Alice', body: 'Hi', approved: false },
+        {
+          id: '1',
+          collection: 'posts',
+          entryId: 'p1',
+          authorName: 'Alice',
+          body: 'Hi',
+          approved: false,
+        },
         201,
       ),
     );

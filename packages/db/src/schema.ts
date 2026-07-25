@@ -148,19 +148,16 @@ export const auditLog = sqliteTable(
   }),
 );
 
-export const redirects = sqliteTable(
-  'redirects',
-  {
-    id: text('id')
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    fromPath: text('from_path').notNull().unique(),
-    toPath: text('to_path').notNull(),
-    statusCode: integer('status_code').notNull().default(301),
-    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
-    updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
-  },
-);
+export const redirects = sqliteTable('redirects', {
+  id: text('id')
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  fromPath: text('from_path').notNull().unique(),
+  toPath: text('to_path').notNull(),
+  statusCode: integer('status_code').notNull().default(301),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().default(now),
+});
 
 export const comments = sqliteTable(
   'comments',

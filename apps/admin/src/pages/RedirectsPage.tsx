@@ -92,7 +92,11 @@ export function RedirectsPage() {
             ))}
           </select>
           {error && <div className="error-text">{error}</div>}
-          <button className="btn btn-primary" disabled={busy || !fromPath || !toPath} onClick={create}>
+          <button
+            className="btn btn-primary"
+            disabled={busy || !fromPath || !toPath}
+            onClick={create}
+          >
             {busy ? 'Creating…' : 'Create redirect'}
           </button>
         </div>

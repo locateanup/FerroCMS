@@ -50,11 +50,7 @@ export async function removeFromIndex(db: Db, entryId: string): Promise<void> {
 
 /** Turn free-text user input into a safe FTS5 MATCH query: quoted, prefix-matched terms. */
 function toFtsQuery(raw: string): string {
-  const terms = raw
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 10);
+  const terms = raw.trim().split(/\s+/).filter(Boolean).slice(0, 10);
   return terms.map((t) => `"${t.replace(/"/g, '""')}"*`).join(' ');
 }
 

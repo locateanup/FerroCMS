@@ -37,7 +37,11 @@ function parseArgs(argv: string[]): Args {
 
 function run(command: string, commandArgs: string[], cwd: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, commandArgs, { cwd, stdio: 'inherit', shell: process.platform === 'win32' });
+    const child = spawn(command, commandArgs, {
+      cwd,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+    });
     child.on('error', reject);
     child.on('exit', (code) => {
       if (code === 0) resolve();
@@ -50,7 +54,9 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
 
   if (!args.name) {
-    console.log('Usage: create-ferrocms <project-directory> [--ref <git-ref>] [--no-install] [--no-git]');
+    console.log(
+      'Usage: create-ferrocms <project-directory> [--ref <git-ref>] [--no-install] [--no-git]',
+    );
     process.exitCode = 1;
     return;
   }

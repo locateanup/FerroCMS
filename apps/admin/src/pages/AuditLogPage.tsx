@@ -5,7 +5,9 @@ import type { AuditLogEntry } from '../lib/types.js';
 const PAGE_SIZE = 50;
 
 function describe(entry: AuditLogEntry): string {
-  const target = entry.collection ? `${entry.collection}${entry.entryId ? `/${entry.entryId.slice(0, 8)}` : ''}` : null;
+  const target = entry.collection
+    ? `${entry.collection}${entry.entryId ? `/${entry.entryId.slice(0, 8)}` : ''}`
+    : null;
   return target ? `${entry.action} — ${target}` : entry.action;
 }
 

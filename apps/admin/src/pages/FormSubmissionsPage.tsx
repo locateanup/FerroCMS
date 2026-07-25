@@ -42,7 +42,9 @@ export function FormSubmissionsPage() {
         const form = formsResult.items.find((f) => f.slug === slug);
         setColumns(form ? form.fields.map((f) => f.name) : []);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load submissions.'))
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : 'Failed to load submissions.'),
+      )
       .finally(() => setLoading(false));
   }, [slug]);
 

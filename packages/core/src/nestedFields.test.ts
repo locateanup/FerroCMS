@@ -43,7 +43,10 @@ describe('group fields', () => {
     expect(() =>
       defineCollection({
         slug: 'pages',
-        fields: [{ name: 'title', type: 'text' }, { name: 'seo', type: 'group', fields: [] }],
+        fields: [
+          { name: 'title', type: 'text' },
+          { name: 'seo', type: 'group', fields: [] },
+        ],
       }),
     ).toThrow(/at least one field/);
   });
@@ -114,7 +117,10 @@ describe('repeater fields', () => {
   it('accepts a valid array of rows', () => {
     const result = validateEntry(fields, {
       title: 'Hi',
-      links: [{ label: 'Home', url: '/' }, { label: 'About', url: '/about' }],
+      links: [
+        { label: 'Home', url: '/' },
+        { label: 'About', url: '/about' },
+      ],
     });
     expect(result.success).toBe(true);
   });
@@ -153,7 +159,10 @@ describe('repeater fields', () => {
           {
             name: 'cta',
             type: 'group',
-            fields: [{ name: 'label', type: 'text' }, { name: 'url', type: 'text' }],
+            fields: [
+              { name: 'label', type: 'text' },
+              { name: 'url', type: 'text' },
+            ],
           },
         ],
       },
@@ -183,9 +192,9 @@ describe('evaluateCondition', () => {
     expect(evaluateCondition({ field: 'hasDiscount', truthy: true }, { hasDiscount: false })).toBe(
       false,
     );
-    expect(
-      evaluateCondition({ field: 'hasDiscount', truthy: false }, { hasDiscount: false }),
-    ).toBe(true);
+    expect(evaluateCondition({ field: 'hasDiscount', truthy: false }, { hasDiscount: false })).toBe(
+      true,
+    );
   });
 
   it('defaults to visible when the condition is empty', () => {

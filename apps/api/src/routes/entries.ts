@@ -53,11 +53,7 @@ function entryTitle(collection: ResolvedCollection, entry: Entry): string {
 }
 
 /** Slack/Discord/email notification in the background — no-op if nothing's configured. */
-function notifyEvent(
-  c: Context<AppBindings>,
-  subject: string,
-  message: string,
-): void {
+function notifyEvent(c: Context<AppBindings>, subject: string, message: string): void {
   background(c, notifyAll(c.get('config'), c.get('email'), subject, message));
 }
 
@@ -608,7 +604,9 @@ router.post('/:collection/import', async (c) => {
   for (const [index, item] of body.items.entries()) {
     try {
       const writable = filterFieldsForWrite(collection.fields, item.data, accessArgs(user));
-      const validation = validateEntry(collection.fields, writable, { locales: collection.locales });
+      const validation = validateEntry(collection.fields, writable, {
+        locales: collection.locales,
+      });
       if (!validation.success) {
         throw new Error(validation.errors!.map((e) => `${e.path}: ${e.message}`).join('; '));
       }
