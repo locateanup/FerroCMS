@@ -37,7 +37,9 @@ export function CalendarPage() {
     api
       .calendar(from, to)
       .then((r) => setItems(r.items))
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load the calendar.'))
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : 'Failed to load the calendar.'),
+      )
       .finally(() => setLoading(false));
   }, [cursor]);
 
@@ -99,7 +101,12 @@ export function CalendarPage() {
             <div
               key={w}
               className="muted"
-              style={{ background: 'var(--surface-1)', padding: '6px 8px', fontSize: 11, textAlign: 'center' }}
+              style={{
+                background: 'var(--surface-1)',
+                padding: '6px 8px',
+                fontSize: 11,
+                textAlign: 'center',
+              }}
             >
               {w}
             </div>

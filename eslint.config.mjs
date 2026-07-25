@@ -12,6 +12,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/*.config.*',
       '**/migrations/**',
+      '**/next-env.d.ts',
     ],
   },
   js.configs.recommended,

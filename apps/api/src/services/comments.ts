@@ -12,7 +12,11 @@ export async function listApprovedComments(
     .select()
     .from(comments)
     .where(
-      and(eq(comments.collection, collection), eq(comments.entryId, entryId), eq(comments.approved, true)),
+      and(
+        eq(comments.collection, collection),
+        eq(comments.entryId, entryId),
+        eq(comments.approved, true),
+      ),
     )
     .orderBy(comments.createdAt);
 }
@@ -36,12 +40,19 @@ export async function createComment(
   db: Db,
   input: Pick<NewComment, 'collection' | 'entryId' | 'authorName' | 'authorEmail' | 'body'>,
 ): Promise<Comment> {
-  const [row] = await db.insert(comments).values({ ...input, approved: false }).returning();
+  const [row] = await db
+    .insert(comments)
+    .values({ ...input, approved: false })
+    .returning();
   return row!;
 }
 
 export async function approveComment(db: Db, id: string): Promise<Comment | null> {
-  const [row] = await db.update(comments).set({ approved: true }).where(eq(comments.id, id)).returning();
+  const [row] = await db
+    .update(comments)
+    .set({ approved: true })
+    .where(eq(comments.id, id))
+    .returning();
   return row ?? null;
 }
 

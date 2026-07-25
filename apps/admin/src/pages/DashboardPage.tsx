@@ -36,7 +36,10 @@ export function DashboardPage() {
   const [activity, setActivity] = useState<AuditLogEntry[]>([]);
 
   useEffect(() => {
-    api.dashboard().then(setStats).catch(() => {});
+    api
+      .dashboard()
+      .then(setStats)
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -54,7 +57,10 @@ export function DashboardPage() {
       )
     : 0;
   const totalPublished = stats
-    ? Object.values(stats.perCollection).reduce((sum, byStatus) => sum + (byStatus.published ?? 0), 0)
+    ? Object.values(stats.perCollection).reduce(
+        (sum, byStatus) => sum + (byStatus.published ?? 0),
+        0,
+      )
     : 0;
 
   return (

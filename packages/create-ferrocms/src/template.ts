@@ -59,7 +59,9 @@ export async function copyTemplate(sourceRoot: string, targetDir: string): Promi
   for (const dir of TEMPLATE_DIRS) {
     const src = path.join(sourceRoot, dir);
     if (!(await exists(src))) {
-      throw new Error(`Template source is missing "${dir}" — is ${sourceRoot} a FerroCMS checkout?`);
+      throw new Error(
+        `Template source is missing "${dir}" — is ${sourceRoot} a FerroCMS checkout?`,
+      );
     }
     await cp(src, path.join(targetDir, dir), { recursive: true, filter: shouldCopy });
   }

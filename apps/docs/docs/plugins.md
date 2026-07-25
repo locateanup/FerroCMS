@@ -3,7 +3,7 @@
 FerroCMS's plugin system is built directly on the collection and hook engine — a plugin is a plain
 object, not a separate runtime concept. There are four independent extension points, depending on
 what you're extending: whole new collections, existing collections' lifecycle, custom field storage
-types, custom field *widgets*, and custom admin pages.
+types, custom field _widgets_, and custom admin pages.
 
 ## Backend plugins: `definePlugin`
 
@@ -68,7 +68,7 @@ validation.
 
 ## Custom admin widgets
 
-Registering a storage type doesn't change how a field is *edited* — for that, register a React
+Registering a storage type doesn't change how a field is _edited_ — for that, register a React
 component against the field's `type` in the admin app:
 
 ```ts

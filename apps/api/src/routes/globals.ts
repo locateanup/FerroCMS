@@ -18,7 +18,9 @@ const router = new Hono<AppBindings>();
 // Schemas for the admin UI to render forms from (mirrors GET /api/collections).
 router.get('/', async (c) => {
   enforce(c, authenticated);
-  return c.json({ items: globals.map((g) => ({ slug: g.slug, label: g.label, fields: g.fields })) });
+  return c.json({
+    items: globals.map((g) => ({ slug: g.slug, label: g.label, fields: g.fields })),
+  });
 });
 
 /** Same TTL as public entry reads (see routes/entries.ts) — short-lived, purged on write. */
@@ -50,11 +52,17 @@ router.get('/:slug', async (c) => {
   }
 
   const entry = await svc.getOrCreateGlobal(c.get('db'), global);
-  const data = filterFieldsForRead(global.fields, entry.data as Record<string, unknown>, accessArgs(user));
+  const data = filterFieldsForRead(
+    global.fields,
+    entry.data as Record<string, unknown>,
+    accessArgs(user),
+  );
   const body = JSON.stringify({ ...entry, data });
 
   if (cacheKey) {
-    await c.get('cache').put(cacheKey, { body, contentType: 'application/json' }, PUBLIC_CACHE_TTL_SECONDS);
+    await c
+      .get('cache')
+      .put(cacheKey, { body, contentType: 'application/json' }, PUBLIC_CACHE_TTL_SECONDS);
   }
   return new Response(body, {
     headers: { 'content-type': 'application/json', ...(cacheKey ? { 'x-cache': 'MISS' } : {}) },

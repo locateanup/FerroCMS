@@ -53,10 +53,14 @@ export function defineGlobal(config: GlobalConfig): ResolvedGlobal {
     }
     seen.add(field.name);
     if (field.type === 'relation' && !field.relationTo) {
-      throw new Error(`Global "${config.slug}" relation field "${field.name}" is missing "relationTo".`);
+      throw new Error(
+        `Global "${config.slug}" relation field "${field.name}" is missing "relationTo".`,
+      );
     }
     if (field.type === 'taxonomy' && !field.taxonomy) {
-      throw new Error(`Global "${config.slug}" taxonomy field "${field.name}" is missing "taxonomy".`);
+      throw new Error(
+        `Global "${config.slug}" taxonomy field "${field.name}" is missing "taxonomy".`,
+      );
     }
     if (field.type === 'group' || field.type === 'repeater') {
       validateFieldList(field.fields, `Global "${config.slug}" > "${field.name}"`);

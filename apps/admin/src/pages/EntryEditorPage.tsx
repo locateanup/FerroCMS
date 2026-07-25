@@ -236,7 +236,11 @@ export function EntryEditorPage() {
                     borderRadius: '50%',
                     marginRight: 6,
                     background:
-                      tStatus === 'complete' ? '#22c55e' : tStatus === 'partial' ? '#eab308' : '#94a3b8',
+                      tStatus === 'complete'
+                        ? '#22c55e'
+                        : tStatus === 'partial'
+                          ? '#eab308'
+                          : '#94a3b8',
                   }}
                 />
                 {l.toUpperCase()}
@@ -305,7 +309,12 @@ export function EntryEditorPage() {
                       {group}
                     </div>
                   )}
-                  <FieldInput field={field} value={fieldValue} onChange={handleChange} formData={data} />
+                  <FieldInput
+                    field={field}
+                    value={fieldValue}
+                    onChange={handleChange}
+                    formData={data}
+                  />
                 </div>
               );
             })
@@ -405,7 +414,11 @@ export function EntryEditorPage() {
                     >
                       Approve &amp; publish
                     </button>
-                    <button className="btn btn-danger" disabled={reviewBusy} onClick={() => decideReview(false)}>
+                    <button
+                      className="btn btn-danger"
+                      disabled={reviewBusy}
+                      onClick={() => decideReview(false)}
+                    >
                       Reject
                     </button>
                   </div>

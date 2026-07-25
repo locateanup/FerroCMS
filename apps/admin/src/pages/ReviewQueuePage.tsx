@@ -17,7 +17,9 @@ export function ReviewQueuePage() {
     api
       .listReviewQueue()
       .then((r) => setItems(r.items))
-      .catch((err) => setError(err instanceof ApiError ? err.message : 'Failed to load the review queue.'))
+      .catch((err) =>
+        setError(err instanceof ApiError ? err.message : 'Failed to load the review queue.'),
+      )
       .finally(() => setLoading(false));
   }
 
@@ -32,7 +34,12 @@ export function ReviewQueuePage() {
   async function decide(entry: Entry, approved: boolean) {
     setBusy(entry.id);
     try {
-      await api.reviewEntry(entry.collection, entry.id, approved, approved ? undefined : notes[entry.id]);
+      await api.reviewEntry(
+        entry.collection,
+        entry.id,
+        approved,
+        approved ? undefined : notes[entry.id],
+      );
       setItems((prev) => prev.filter((i) => i.id !== entry.id));
     } finally {
       setBusy(null);

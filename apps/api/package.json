@@ -16,8 +16,8 @@
   "dependencies": {
     "@ferrocms/core": "workspace:*",
     "@ferrocms/db": "workspace:*",
-    "@hono/node-server": "^1.13.7",
-    "drizzle-orm": "^0.36.4",
+    "@hono/node-server": "^2.0.8",
+    "drizzle-orm": "^0.45.2",
     "graphql": "^16.9.0",
     "graphql-yoga": "^5.10.2",
     "hono": "^4.6.14",
@@ -27,7 +27,7 @@
     "@cloudflare/workers-types": "^4.20241127.0",
     "@types/node": "^22.9.0",
     "tsx": "^4.19.2",
-    "vitest": "^2.1.1",
-    "wrangler": "^3.99.0"
+    "vitest": "^3.2.6",
+    "wrangler": "^3.114.17"
   }
 }

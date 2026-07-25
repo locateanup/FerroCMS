@@ -13,8 +13,16 @@ export async function listCalendarEntries(db: Db, from: Date, to: Date): Promise
     .from(entries)
     .where(
       or(
-        and(eq(entries.status, 'scheduled'), gte(entries.scheduledAt, from), lte(entries.scheduledAt, to)),
-        and(eq(entries.status, 'published'), gte(entries.publishedAt, from), lte(entries.publishedAt, to)),
+        and(
+          eq(entries.status, 'scheduled'),
+          gte(entries.scheduledAt, from),
+          lte(entries.scheduledAt, to),
+        ),
+        and(
+          eq(entries.status, 'published'),
+          gte(entries.publishedAt, from),
+          lte(entries.publishedAt, to),
+        ),
       ),
     );
 }

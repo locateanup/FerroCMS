@@ -39,15 +39,15 @@ static build — serve it from the same proxy or any static host, pointed at the
 
 ## Environment variables
 
-| Var | Required | Notes |
-|---|---|---|
-| `DATABASE_URL` | yes | `libsql://...` (Turso) or a local `turso dev` URL |
-| `DATABASE_AUTH_TOKEN` | yes (Turso) | Not needed for `turso dev` |
-| `AUTH_SECRET` | yes | Random secret for session signing |
-| `MEDIA_DIR` | Node only | Filesystem path for uploaded media |
-| `SITE_URL` | for SEO | Used to build sitemap/canonical URLs |
-| `SLACK_WEBHOOK_URL` / `DISCORD_WEBHOOK_URL` | optional | Notification channels |
-| `NOTIFY_EMAIL_TO` | optional | Email notifications (via the configured `EmailProvider`) |
+| Var                                         | Required    | Notes                                                    |
+| ------------------------------------------- | ----------- | -------------------------------------------------------- |
+| `DATABASE_URL`                              | yes         | `libsql://...` (Turso) or a local `turso dev` URL        |
+| `DATABASE_AUTH_TOKEN`                       | yes (Turso) | Not needed for `turso dev`                               |
+| `AUTH_SECRET`                               | yes         | Random secret for session signing                        |
+| `MEDIA_DIR`                                 | Node only   | Filesystem path for uploaded media                       |
+| `SITE_URL`                                  | for SEO     | Used to build sitemap/canonical URLs                     |
+| `SLACK_WEBHOOK_URL` / `DISCORD_WEBHOOK_URL` | optional    | Notification channels                                    |
+| `NOTIFY_EMAIL_TO`                           | optional    | Email notifications (via the configured `EmailProvider`) |
 
 See `.env.example` at the repo root for the full, documented list.
 

@@ -12,18 +12,18 @@ for the hot, universal fields (`id`, `status`, `slug`, `createdAt`, `updatedAt`,
 import { defineCollection } from '@ferrocms/core';
 
 export const posts = defineCollection({
-  slug: 'posts',                 // URL + table key — lowercase, kebab/snake, unique
+  slug: 'posts', // URL + table key — lowercase, kebab/snake, unique
   labels: { singular: 'Post', plural: 'Posts' }, // optional, derived from slug otherwise
-  timestamps: true,              // default true — adds createdAt/updatedAt
-  drafts: true,                  // default true — draft/published/scheduled/archived
+  timestamps: true, // default true — adds createdAt/updatedAt
+  drafts: true, // default true — draft/published/scheduled/archived
   seo: { urlPattern: '/blog/:slug' }, // optional — injects meta fields + sitemap entry
-  locales: ['en', 'fr'],         // required if any field sets localized: true
+  locales: ['en', 'fr'], // required if any field sets localized: true
   fields: [
     { name: 'title', type: 'text', required: true },
     { name: 'slug', type: 'slug', from: 'title', unique: true },
     { name: 'body', type: 'richText', localized: true },
   ],
-  access: { read: () => true },  // optional — see Access control below
+  access: { read: () => true }, // optional — see Access control below
   admin: { useAsTitle: 'title', icon: 'article' },
 });
 ```
@@ -35,21 +35,21 @@ immediately when your app boots.
 
 ## Field types
 
-| Type | Notes |
-|---|---|
-| `text` / `textarea` | `minLength`, `maxLength`, `defaultValue` |
-| `slug` | `from` auto-generates from another field (e.g. `title`) |
-| `number` | `min`, `max`, `integer` |
-| `boolean` | — |
-| `date` | ISO 8601 string |
-| `select` | `options: {label, value}[]`, `many` for multi-select |
-| `json` | escape hatch for arbitrary structured data |
-| `richText` | block-based rich text, stored as JSON, rendered safely via the SDK |
-| `relation` | `relationTo` (target collection slug), `many` |
-| `media` | references the media library, `many` |
-| `taxonomy` | `taxonomy` (target taxonomy slug), `many` (default true) |
-| `group` | `fields: Field[]` — a nested object, stored as `{ [name]: {...} }` |
-| `repeater` | `fields: Field[]`, `minRows`/`maxRows` — an array of the same sub-fields |
+| Type                | Notes                                                                    |
+| ------------------- | ------------------------------------------------------------------------ |
+| `text` / `textarea` | `minLength`, `maxLength`, `defaultValue`                                 |
+| `slug`              | `from` auto-generates from another field (e.g. `title`)                  |
+| `number`            | `min`, `max`, `integer`                                                  |
+| `boolean`           | —                                                                        |
+| `date`              | ISO 8601 string                                                          |
+| `select`            | `options: {label, value}[]`, `many` for multi-select                     |
+| `json`              | escape hatch for arbitrary structured data                               |
+| `richText`          | block-based rich text, stored as JSON, rendered safely via the SDK       |
+| `relation`          | `relationTo` (target collection slug), `many`                            |
+| `media`             | references the media library, `many`                                     |
+| `taxonomy`          | `taxonomy` (target taxonomy slug), `many` (default true)                 |
+| `group`             | `fields: Field[]` — a nested object, stored as `{ [name]: {...} }`       |
+| `repeater`          | `fields: Field[]`, `minRows`/`maxRows` — an array of the same sub-fields |
 
 Every field also supports: `required`, `unique`, `description`, `localized`, `access` (per-field
 read/update, see below), and an `admin` block:

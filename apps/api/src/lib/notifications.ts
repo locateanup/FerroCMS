@@ -9,7 +9,10 @@ export interface NotificationChannel {
   send(message: string): Promise<void>;
 }
 
-function jsonPostChannel(url: string, toPayload: (message: string) => unknown): NotificationChannel {
+function jsonPostChannel(
+  url: string,
+  toPayload: (message: string) => unknown,
+): NotificationChannel {
   return {
     async send(message) {
       await fetch(url, {

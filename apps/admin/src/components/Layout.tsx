@@ -54,7 +54,10 @@ export function Layout({ children }: { children: ReactNode }) {
         <NavLink to="/media" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
           <span>Media</span>
         </NavLink>
-        <NavLink to="/calendar" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+        <NavLink
+          to="/calendar"
+          className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+        >
           <span>Calendar</span>
         </NavLink>
 
@@ -90,7 +93,10 @@ export function Layout({ children }: { children: ReactNode }) {
 
         <div className="spacer" />
         {(user?.role === 'admin' || user?.role === 'editor') && (
-          <NavLink to="/review" className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}>
+          <NavLink
+            to="/review"
+            className={({ isActive }) => `nav-item${isActive ? ' active' : ''}`}
+          >
             <span>Review queue</span>
           </NavLink>
         )}
