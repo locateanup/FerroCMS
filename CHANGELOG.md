@@ -5,6 +5,21 @@ All notable changes to this project are documented here. The format follows
 Versioning](https://semver.org) — see [Versioning policy](./CONTRIBUTING.md#versioning-policy) for
 what that means pre-1.0.
 
+## [Unreleased]
+
+### Added
+
+- **Live preview**: `admin.previewUrlPattern` on a collection plus a Preview button in the entry
+  editor — mints a real preview token and renders your front-end's preview route in an iframe inside
+  the admin. `examples/next-site` ships a working `/preview/[collection]/[id]` route consuming it.
+- **Drag-and-drop reordering** for rich-text blocks and repeater field rows (native HTML5 DnD, no
+  external library — see `apps/admin/src/lib/dragReorder.ts`).
+- **Presence**: a lightweight "who else is editing this" banner — heartbeats every ~8s while an entry
+  is open, built on the existing KV adapter (`KVAdapter.list()`), no new platform primitive. Not live
+  collaborative editing (no keystroke-level sync) — see the code comment in
+  `apps/api/src/services/presence.ts` for why that's out of honest scope for a Workers+Node dual
+  runtime.
+
 ## [0.1.0] — 2026-07-25
 
 First tagged version. Everything below has real tests behind it (unit/integration via Vitest, one

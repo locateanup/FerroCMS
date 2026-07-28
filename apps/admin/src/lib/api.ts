@@ -13,6 +13,7 @@ import type {
   ListResult,
   LoginChallenge,
   MediaItem,
+  PresenceEntry,
   Redirect,
   Revision,
   Role,
@@ -175,6 +176,16 @@ export const api = {
   },
   deleteMedia: (id: string) => req<void>(`/api/media/${id}`, { method: 'DELETE' }),
   mediaUrl: (key: string) => `${BASE}/api/media/file/${key}`,
+
+  mintPreviewToken: (slug: string, id: string) =>
+    req<{ token: string; expiresAt: string }>(`/api/${slug}/${id}/preview-token`, {
+      method: 'POST',
+    }),
+
+  presenceHeartbeat: (slug: string, id: string) =>
+    req<{ items: PresenceEntry[] }>(`/api/${slug}/${id}/presence`, { method: 'POST' }),
+  presenceLeave: (slug: string, id: string) =>
+    req<void>(`/api/${slug}/${id}/presence`, { method: 'DELETE' }),
 
   listRevisions: (slug: string, id: string) =>
     req<{ items: Revision[] }>(`/api/${slug}/${id}/revisions`),

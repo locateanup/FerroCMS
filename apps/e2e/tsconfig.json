@@ -4,7 +4,11 @@
     "noEmit": true,
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "types": ["node"]
+    "types": ["node"],
+    // Needed for the DOM types (document, DragEvent, ...) referenced inside
+    // page.evaluate() callbacks in tests — those run in the browser, not
+    // Node, but still need to typecheck here.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"]
   },
   "include": ["**/*.ts"]
 }

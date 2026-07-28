@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { renderRichTextHtml, type RichTextBlock, type RichTextValue } from '@ferrocms/core';
 import { api } from '../lib/api.js';
+import { reorder, useDragReorder } from '../lib/dragReorder.js';
 import { MediaInput } from './MediaInput.js';
 
 interface Props {
@@ -46,6 +47,9 @@ function asBlocks(value: unknown): RichTextValue {
 export function BlockEditor({ value, onChange }: Props) {
   const blocks = asBlocks(value);
   const [preview, setPreview] = useState(false);
+  const { dragIndex, handleProps, dropZoneProps } = useDragReorder((from, to) =>
+    onChange(reorder(blocks, from, to)),
+  );
 
   function update(i: number, next: RichTextBlock) {
     const copy = blocks.slice();
@@ -125,17 +129,29 @@ export function BlockEditor({ value, onChange }: Props) {
           {blocks.map((block, i) => (
             <div
               key={i}
+              {...dropZoneProps(i)}
               style={{
                 border: '1px solid var(--border)',
                 borderRadius: 'var(--radius)',
                 padding: 8,
+                opacity: dragIndex === i ? 0.5 : 1,
               }}
             >
               <div
                 className="row"
                 style={{ justifyContent: 'space-between', marginBottom: 6, fontSize: 11 }}
               >
-                <span className="muted">{BLOCK_LABELS[block.type]}</span>
+                <span className="row" style={{ gap: 6 }}>
+                  <span
+                    {...handleProps(i)}
+                    className="muted"
+                    title="Drag to reorder"
+                    style={{ cursor: 'grab' }}
+                  >
+                    ⠿
+                  </span>
+                  <span className="muted">{BLOCK_LABELS[block.type]}</span>
+                </span>
                 <div className="row" style={{ gap: 4 }}>
                   <button
                     type="button"

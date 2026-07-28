@@ -4,7 +4,7 @@
  * service to provision.
  */
 
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import { kv as kvTable, type Db } from '@ferrocms/db';
 import type { KVAdapter } from './types.js';
 
@@ -30,6 +30,16 @@ export function sqlKV(db: Db): KVAdapter {
     },
     async delete(key) {
       await db.delete(kvTable).where(eq(kvTable.key, key));
+    },
+    async list(prefix) {
+      const rows = await db
+        .select()
+        .from(kvTable)
+        .where(like(kvTable.key, `${prefix}%`));
+      const now = Date.now();
+      return rows
+        .filter((row) => !row.expiresAt || row.expiresAt.getTime() > now)
+        .map((row) => ({ key: row.key, value: row.value }));
     },
   };
 }

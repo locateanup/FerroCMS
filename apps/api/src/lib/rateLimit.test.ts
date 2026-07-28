@@ -12,6 +12,10 @@ function fakeKV(): KVAdapter {
     delete: async (key) => {
       store.delete(key);
     },
+    list: async (prefix) =>
+      [...store.entries()]
+        .filter(([key]) => key.startsWith(prefix))
+        .map(([key, value]) => ({ key, value })),
   };
 }
 

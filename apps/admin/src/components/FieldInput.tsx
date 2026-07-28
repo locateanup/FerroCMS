@@ -1,6 +1,7 @@
 import { evaluateCondition } from '@ferrocms/core';
 import type { Field } from '../lib/types.js';
 import { getFieldRenderer } from '../lib/fieldRegistry.js';
+import { reorder, useDragReorder } from '../lib/dragReorder.js';
 import { RelationInput } from './RelationInput.js';
 import { MediaInput } from './MediaInput.js';
 import { BlockEditor } from './BlockEditor.js';
@@ -23,6 +24,13 @@ function label(field: Field): string {
 }
 
 export function FieldInput({ field, value, onChange, formData = {} }: Props) {
+  // Called unconditionally regardless of field.type (Rules of Hooks) — cheap
+  // when unused, only wired up in the 'repeater' case below.
+  const repeaterRows = field.type === 'repeater' && Array.isArray(value) ? value : [];
+  const { dragIndex, handleProps, dropZoneProps } = useDragReorder((from, to) =>
+    onChange(reorder(repeaterRows, from, to)),
+  );
+
   if (field.admin?.hidden) return null;
   if (field.admin?.condition && !evaluateCondition(field.admin.condition, formData)) return null;
 
@@ -148,8 +156,28 @@ export function FieldInput({ field, value, onChange, formData = {} }: Props) {
               <div
                 key={i}
                 className="card"
-                style={{ padding: 12, marginBottom: 8, position: 'relative' }}
+                {...dropZoneProps(i)}
+                style={{
+                  padding: 12,
+                  marginBottom: 8,
+                  position: 'relative',
+                  opacity: dragIndex === i ? 0.5 : 1,
+                }}
               >
+                <span
+                  {...handleProps(i)}
+                  className="muted"
+                  title="Drag to reorder"
+                  style={{
+                    position: 'absolute',
+                    top: 8,
+                    left: 8,
+                    cursor: 'grab',
+                    fontSize: 14,
+                  }}
+                >
+                  ⠿
+                </span>
                 <button
                   type="button"
                   className="btn btn-danger"
@@ -165,6 +193,7 @@ export function FieldInput({ field, value, onChange, formData = {} }: Props) {
                 >
                   Remove
                 </button>
+                <div style={{ marginTop: 20 }} />
                 {(field.fields ?? []).map((sub) => (
                   <FieldInput
                     key={sub.name}
