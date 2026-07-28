@@ -1,6 +1,7 @@
 import { Hono } from 'hono';
 import type { AppBindings } from '../env.js';
 import { errors } from '../lib/errors.js';
+import { timingSafeEqual } from '../lib/crypto.js';
 import { runScheduledPublish } from '../services/scheduling.js';
 
 const router = new Hono<AppBindings>();
@@ -15,8 +16,8 @@ const router = new Hono<AppBindings>();
  * admin.
  */
 router.post('/publish-scheduled', async (c) => {
-  const auth = c.req.header('Authorization');
-  if (auth !== `Bearer ${c.get('config').authSecret}`) throw errors.unauthorized();
+  const auth = c.req.header('Authorization') ?? '';
+  if (!timingSafeEqual(auth, `Bearer ${c.get('config').authSecret}`)) throw errors.unauthorized();
 
   const published = await runScheduledPublish(
     c.get('db'),
