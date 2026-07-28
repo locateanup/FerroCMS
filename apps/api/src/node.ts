@@ -9,10 +9,15 @@ import { serve } from '@hono/node-server';
 import { createDb, type Db } from '@ferrocms/db';
 import { createLocalDb } from '@ferrocms/db/local';
 import { createApp } from './app.js';
-import { configFromProcessEnv, fsStorage, memoryCache } from './platform/node.js';
+import { configFromProcessEnv, fsStorage, memoryCache, nodeImageCodecs } from './platform/node.js';
 import { sqlKV } from './platform/kv.js';
 import { runScheduledPublish } from './services/scheduling.js';
 import { consoleEmailProvider } from './lib/email.js';
+import { registerImageCodecLoader } from './lib/imageResize.js';
+
+// Lazy: only reads the WASM files from disk the first time an image-resize
+// request actually arrives, not on every server start.
+registerImageCodecLoader(nodeImageCodecs);
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) throw new Error('DATABASE_URL is required.');

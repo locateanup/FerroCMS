@@ -84,5 +84,11 @@ export function configFromEnv(env: Env): AppConfig {
     slackWebhookUrl: env.SLACK_WEBHOOK_URL,
     discordWebhookUrl: env.DISCORD_WEBHOOK_URL,
     notifyEmailTo: env.NOTIFY_EMAIL_TO,
+    googleClientId: env.GOOGLE_CLIENT_ID,
+    googleClientSecret: env.GOOGLE_CLIENT_SECRET,
+    githubClientId: env.GITHUB_CLIENT_ID,
+    githubClientSecret: env.GITHUB_CLIENT_SECRET,
+    meilisearchUrl: env.MEILISEARCH_URL,
+    meilisearchApiKey: env.MEILISEARCH_API_KEY,
   };
 }

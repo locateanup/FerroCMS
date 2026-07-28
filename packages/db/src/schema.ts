@@ -21,7 +21,8 @@ export const users = sqliteTable('users', {
     .primaryKey()
     .$defaultFn(() => crypto.randomUUID()),
   email: text('email').notNull().unique(),
-  passwordHash: text('password_hash').notNull(),
+  /** Null for an OAuth-only account (see `oauthAccounts`) — nothing to verify a password against. */
+  passwordHash: text('password_hash'),
   name: text('name'),
   role: text('role', { enum: ROLES }).notNull().default('author'),
   /** Base32 TOTP secret. Set as soon as setup starts; only trusted for login once totpEnabled. */
@@ -43,6 +44,30 @@ export const apiKeys = sqliteTable('api_keys', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
   lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
 });
+
+/** A linked SSO identity — a user can have a password, one or more of these, or both. */
+export const oauthAccounts = sqliteTable(
+  'oauth_accounts',
+  {
+    id: text('id')
+      .primaryKey()
+      .$defaultFn(() => crypto.randomUUID()),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    provider: text('provider').notNull(),
+    /** The provider's own stable user id (Google `sub`, GitHub numeric `id`) — never the email. */
+    providerAccountId: text('provider_account_id').notNull(),
+    createdAt: integer('created_at', { mode: 'timestamp' }).notNull().default(now),
+  },
+  (t) => ({
+    providerAccountIdx: uniqueIndex('oauth_provider_account_idx').on(
+      t.provider,
+      t.providerAccountId,
+    ),
+    userIdx: index('oauth_user_idx').on(t.userId),
+  }),
+);
 
 export const entries = sqliteTable(
   'entries',
@@ -209,6 +234,8 @@ export const kv = sqliteTable(
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
 export type ApiKey = typeof apiKeys.$inferSelect;
+export type OAuthAccount = typeof oauthAccounts.$inferSelect;
+export type NewOAuthAccount = typeof oauthAccounts.$inferInsert;
 export type Entry = typeof entries.$inferSelect;
 export type NewEntry = typeof entries.$inferInsert;
 export type Revision = typeof revisions.$inferSelect;

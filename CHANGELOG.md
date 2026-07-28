@@ -19,6 +19,20 @@ what that means pre-1.0.
   collaborative editing (no keystroke-level sync) — see the code comment in
   `apps/api/src/services/presence.ts` for why that's out of honest scope for a Workers+Node dual
   runtime.
+- **Image transforms / responsive variants**: on-demand `GET /api/media/file/:key?w=<width>` resizing
+  for PNG/JPEG via WASM codecs ([jSquash](https://github.com/jamsinclair/jSquash)) — no native
+  bindings (sharp) and no third-party service, runs identically on Cloudflare Workers and Node.
+  Variants are generated once and cached in the same storage adapter. `@ferrocms/sdk`'s
+  `buildSrcSet()` generates a matching `srcset`.
+- **SSO / OAuth**: Google and GitHub sign-in via a real authorization-code flow against their
+  documented endpoints. Preserves the existing invite-only policy — only the first-ever user can
+  self-provision via OAuth (becomes admin); every other OAuth login must match an existing invited
+  user's email (account linking via a new `oauth_accounts` table) or is rejected.
+- **Third-party integrations**: a Google Analytics (GA4) client-side helper (`@ferrocms/sdk`) and a
+  Meilisearch adapter (`apps/api/src/lib/meilisearch.ts`) for opt-in typo-tolerant hosted search,
+  wired via plugin hooks rather than replacing the built-in zero-setup FTS5 search. See
+  [docs/plugins.md](apps/docs/docs/plugins.md#third-party-integrations) for the adapter pattern to
+  add others (Stripe, ImageKit, Algolia, …).
 
 ## [0.1.0] — 2026-07-25
 

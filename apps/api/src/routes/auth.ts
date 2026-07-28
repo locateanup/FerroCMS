@@ -104,7 +104,7 @@ router.post('/login', async (c) => {
 
   const db = c.get('db');
   const [user] = await db.select().from(users).where(eq(users.email, body.email)).limit(1);
-  const valid = user ? await verifyPassword(body.password, user.passwordHash) : false;
+  const valid = user?.passwordHash ? await verifyPassword(body.password, user.passwordHash) : false;
   if (!user || !valid) throw errors.unauthorized('Invalid email or password.');
   if (!user.active) throw errors.unauthorized('This account has been deactivated.');
 

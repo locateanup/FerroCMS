@@ -56,4 +56,12 @@ export interface AppConfig {
   discordWebhookUrl?: string;
   /** Address notified by email on the same events, via the configured EmailProvider. */
   notifyEmailTo?: string;
+  /** SSO — a provider is only offered when both its id and secret are set. */
+  googleClientId?: string;
+  googleClientSecret?: string;
+  githubClientId?: string;
+  githubClientSecret?: string;
+  /** Third-party search (optional — see lib/meilisearch.ts). Unset means "not configured". */
+  meilisearchUrl?: string;
+  meilisearchApiKey?: string;
 }

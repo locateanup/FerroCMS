@@ -39,6 +39,9 @@
     "DISCORD_WEBHOOK_URL": "",
     "NOTIFY_EMAIL_TO": ""
   }
-  // Secrets (DATABASE_URL, AUTH_SECRET) are provided via `.dev.vars` locally
-  // and `wrangler secret put` in production — never commit them here.
+  // Secrets (DATABASE_URL, AUTH_SECRET, and — if you enable SSO —
+  // GOOGLE_CLIENT_ID/SECRET, GITHUB_CLIENT_ID/SECRET) are provided via
+  // `.dev.vars` locally and `wrangler secret put` in production — never
+  // commit them here, including as plaintext `vars` above (client secrets
+  // are, well, secrets).
 }

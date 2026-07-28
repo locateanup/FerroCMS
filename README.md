@@ -60,7 +60,7 @@ git-based tools like Keystatic, without the operational weight of a self-hosted 
 
 ## Features
 
-Legend: ✅ implemented · 🚧 planned
+Legend: ✅ implemented
 
 ### Content
 
@@ -109,8 +109,10 @@ Legend: ✅ implemented · 🚧 planned
 - ✅ Media library backed by Cloudflare R2 (upload, browse, delete, public serving)
 - ✅ Folders (with a filter in the admin) and video uploads (mp4/webm/quicktime) with preview
 - ✅ Image dimensions captured on upload (pure-JS PNG/GIF/JPEG/WebP header parsing, no native deps)
-- 🚧 Image transforms / responsive variants (actual resizing — needs Cloudflare Images or a similar
-  service; capturing dimensions is not the same as generating resized variants)
+- ✅ Image transforms / responsive variants — on-demand `?w=` resizing (PNG/JPEG) via WASM codecs
+  ([jSquash](https://github.com/jamsinclair/jSquash)), no native bindings and no third-party service;
+  runs identically on Cloudflare Workers and Node, variants cached alongside the original after first
+  request. `@ferrocms/sdk`'s `buildSrcSet()` generates a matching `srcset` for `<img>`
 
 ### Users & security
 
@@ -122,7 +124,9 @@ Legend: ✅ implemented · 🚧 planned
   strict security response headers (CSP, `nosniff`, `X-Frame-Options`, …)
 - ✅ TOTP-based two-factor authentication — self-contained (no external OAuth app/account needed),
   works with any standard authenticator app; a `Security` page in the admin to enable/disable it
-- 🚧 SSO / OAuth (needs a real provider app registration to build against honestly)
+- ✅ SSO / OAuth — Google and GitHub sign-in (real authorization-code flow against their documented
+  endpoints), account-linking by email, invite-only policy preserved (only the first-ever user
+  self-provisions via OAuth; every other OAuth login must match an existing invited user)
 
 ### SEO
 
@@ -140,7 +144,12 @@ Legend: ✅ implemented · 🚧 planned
   with its own Zod validation, via `defineCustomField()`, no core changes needed
 - ✅ Custom admin _pages_ — `registerAdminPage()` adds a whole route + nav entry to the admin (see
   `apps/admin/src/plugins.ts`), not just a field widget
-- 🚧 Plugin marketplace / package registry, third-party integrations (GA4, ImageKit, Algolia, Stripe, …)
+- ✅ First-party third-party integrations, wired via the plugin hooks above (see
+  [docs/plugins.md](apps/docs/docs/plugins.md)): Google Analytics (GA4) client helper, and a
+  Meilisearch adapter for typo-tolerant hosted search (opt-in — the built-in FTS5 search stays the
+  zero-setup default). No hosted plugin marketplace/package registry yet — plugins are TypeScript
+  modules you import directly; see the docs for the adapter pattern to add your own (Stripe,
+  ImageKit, Algolia, …)
 
 ## How it compares
 

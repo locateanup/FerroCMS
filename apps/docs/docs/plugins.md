@@ -104,6 +104,70 @@ registerAdminPage({
 that file runs once at admin startup. This is the single file to edit when adding first-party or
 third-party plugin registrations to your own fork.
 
+## Third-party integrations
+
+A few high-demand integrations ship as real, working code rather than just documented adapter shapes —
+you still need your own account/instance for the hosted ones, but the FerroCMS-side wiring is done and
+tested.
+
+### Google Analytics (GA4)
+
+`@ferrocms/sdk` exports a small client-side helper — no server component, since GA4 is a
+browser-side pageview/event pipe:
+
+```ts
+import { gtagScriptTags, trackPageview, trackEvent } from '@ferrocms/sdk';
+
+// In your site's <head> (Next.js: next/script, or render the tags directly):
+for (const tag of gtagScriptTags('G-XXXXXXX')) {
+  // tag.type is 'src' (the loader <script src>) or 'inline' (the gtag() config call)
+}
+
+// On route change / on a custom event:
+trackPageview('/blog/hello-world');
+trackEvent('newsletter_signup', { location: 'footer' });
+```
+
+`trackPageview`/`trackEvent` call `window.gtag` if the loader script ran, and no-op otherwise —
+safe to call unconditionally, including during SSR.
+
+### Meilisearch (site/full-text search)
+
+The built-in `/api/search` endpoint (SQLite FTS5) needs zero setup and stays the default. If you run
+your own [Meilisearch](https://www.meilisearch.com/docs/learn/getting_started/installation) instance
+(self-hostable, open-source) and want its typo-tolerant ranked search instead, wire it via a plugin's
+hooks rather than replacing the built-in route:
+
+```ts
+import { definePlugin } from '@ferrocms/core';
+import { indexDocument, removeDocument } from '../lib/meilisearch.js';
+
+const meiliConfig = { url: process.env.MEILISEARCH_URL!, apiKey: process.env.MEILISEARCH_API_KEY };
+
+export const meilisearchPlugin = definePlugin({
+  name: 'meilisearch-sync',
+  hooks: {
+    posts: {
+      afterChange: [({ doc }) => indexDocument(meiliConfig, 'posts', { id: doc.id, ...doc.data })],
+      afterDelete: [({ doc }) => removeDocument(meiliConfig, 'posts', doc.id)],
+    },
+  },
+});
+```
+
+Set `MEILISEARCH_URL` (and `MEILISEARCH_API_KEY` if you enabled a master/API key) — see
+`.env.example`. Query it from your front-end with `searchIndex(config, 'posts', query)`.
+
+### Adapter pattern for other providers (Stripe, ImageKit, Algolia, …)
+
+Payments (Stripe), alternate media CDNs (ImageKit, Cloudinary), and alternate search (Algolia) all
+follow the same shape as `lib/meilisearch.ts`: a small typed function per operation, taking a config
+object and calling the provider's real HTTP API directly — no SDK dependency, no abstraction beyond
+what's needed. None of these three ship in FerroCMS core (they're paid, hosted services with no
+self-hostable free tier to build and test against locally), but the pattern to add your own is:
+create `apps/api/src/lib/<provider>.ts` following `meilisearch.ts`'s shape, then call it from a plugin
+hook exactly like the example above — nothing in the request-handling core needs to change.
+
 ## Where to put plugin code
 
 There's no separate plugin package format yet (no marketplace, no `npm install`-and-auto-discover) —
