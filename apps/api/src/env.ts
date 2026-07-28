@@ -26,6 +26,14 @@ export interface Env {
   DISCORD_WEBHOOK_URL?: string;
   /** Address notified by email on the same events. */
   NOTIFY_EMAIL_TO?: string;
+  /** SSO — a provider is only offered when both its id and secret are set. */
+  GOOGLE_CLIENT_ID?: string;
+  GOOGLE_CLIENT_SECRET?: string;
+  GITHUB_CLIENT_ID?: string;
+  GITHUB_CLIENT_SECRET?: string;
+  /** Third-party search (optional — see lib/meilisearch.ts). */
+  MEILISEARCH_URL?: string;
+  MEILISEARCH_API_KEY?: string;
   /** R2 bucket for the media library. */
   MEDIA: R2Bucket;
 }

@@ -7,7 +7,9 @@ import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
 import { randomToken } from '../lib/crypto.js';
 import { detectImageDimensions } from '../lib/imageMeta.js';
+import { generateResponsiveVariants, RESIZABLE_MIME_TYPES } from '../lib/imageResize.js';
 import { logAudit } from '../services/audit.js';
+import type { StoredObject } from '../platform/types.js';
 
 const router = new Hono<AppBindings>();
 
@@ -128,17 +130,66 @@ router.get('/', async (c) => {
   return c.json({ items: rows });
 });
 
-// Serve a media object publicly from storage (R2 or filesystem).
-router.get('/file/:key{.+}', async (c) => {
-  const key = c.req.param('key');
-  const object = await c.get('storage').get(key);
-  if (!object) throw errors.notFound('File');
+/** Responsive-variant widths worth generating — matches common device/breakpoint widths. */
+const RESPONSIVE_WIDTHS = [320, 640, 768, 1024, 1280, 1536, 1920];
 
+function serveObject(object: StoredObject): Response {
   const headers = new Headers();
   if (object.contentType) headers.set('content-type', object.contentType);
   if (object.etag) headers.set('etag', object.etag);
   headers.set('cache-control', 'public, max-age=31536000, immutable');
   return new Response(object.body as BodyInit, { headers });
+}
+
+async function toArrayBuffer(body: StoredObject['body']): Promise<ArrayBuffer> {
+  if (body instanceof ArrayBuffer) return body;
+  // Never actually backed by a SharedArrayBuffer in this codebase — the cast
+  // just satisfies lib.dom's ArrayBufferLike vs. ArrayBuffer split.
+  if (body instanceof Uint8Array) {
+    return body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength) as ArrayBuffer;
+  }
+  return new Response(body).arrayBuffer();
+}
+
+/** `2024/abc123.png` + 640 -> `2024/abc123__w640.png` — stored as its own object, generated once. */
+function variantKey(key: string, width: number): string {
+  const dot = key.lastIndexOf('.');
+  return dot > -1 ? `${key.slice(0, dot)}__w${width}${key.slice(dot)}` : `${key}__w${width}`;
+}
+
+// Serve a media object publicly from storage (R2 or filesystem). `?w=<width>`
+// serves (generating and caching in storage on first request) a resized
+// variant — one of RESPONSIVE_WIDTHS, for an image type generateResponsiveVariants
+// knows how to decode. Any other request just serves the original.
+router.get('/file/:key{.+}', async (c) => {
+  const key = c.req.param('key');
+  const storage = c.get('storage');
+  const width = Number(c.req.query('w'));
+
+  if (width && RESPONSIVE_WIDTHS.includes(width)) {
+    const vKey = variantKey(key, width);
+    const cachedVariant = await storage.get(vKey);
+    if (cachedVariant) return serveObject(cachedVariant);
+
+    const original = await storage.get(key);
+    if (!original) throw errors.notFound('File');
+    if (original.contentType && RESIZABLE_MIME_TYPES.has(original.contentType)) {
+      const bytes = await toArrayBuffer(original.body);
+      const [generated] = await generateResponsiveVariants(bytes, original.contentType, [width]);
+      if (generated) {
+        await storage.put(vKey, generated.data.buffer as ArrayBuffer, {
+          contentType: original.contentType,
+        });
+        return serveObject({ body: generated.data, contentType: original.contentType });
+      }
+    }
+    // Not resizable, or the requested width isn't smaller than the original — serve it as-is.
+    return serveObject(original);
+  }
+
+  const object = await storage.get(key);
+  if (!object) throw errors.notFound('File');
+  return serveObject(object);
 });
 
 // Delete a media item from R2 and the database.

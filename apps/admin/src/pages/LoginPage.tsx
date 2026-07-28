@@ -15,6 +15,8 @@ export function LoginPage() {
   const [challengeToken, setChallengeToken] = useState<string | null>(null);
   const [totpCode, setTotpCode] = useState('');
 
+  const [oauthProviders, setOauthProviders] = useState<{ id: string; label: string }[]>([]);
+
   // If registration is still open (no users yet), show the first-admin form.
   useEffect(() => {
     api
@@ -24,6 +26,15 @@ export function LoginPage() {
         if (err instanceof ApiError && err.status === 422) setMode('register');
         else setMode('login');
       });
+  }, []);
+
+  // Only shows buttons for providers that are actually configured
+  // (GOOGLE_CLIENT_ID/SECRET, GITHUB_CLIENT_ID/SECRET) — empty by default.
+  useEffect(() => {
+    api
+      .oauthProviders()
+      .then((r) => setOauthProviders(r.items))
+      .catch(() => setOauthProviders([]));
   }, []);
 
   async function submit(e: FormEvent) {
@@ -165,6 +176,24 @@ export function LoginPage() {
             {busy ? 'Please wait…' : mode === 'register' ? 'Create account' : 'Sign in'}
           </button>
         </form>
+
+        {oauthProviders.length > 0 && (
+          <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
+            <p className="muted" style={{ marginTop: 0, marginBottom: 8, fontSize: 12 }}>
+              Or continue with
+            </p>
+            {oauthProviders.map((p) => (
+              <a
+                key={p.id}
+                className="btn"
+                style={{ width: '100%', justifyContent: 'center', marginBottom: 8 }}
+                href={`${api.base}/api/auth/oauth/${p.id}`}
+              >
+                {p.label}
+              </a>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -2,6 +2,8 @@
 
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import type { ImageCodecModules } from '../lib/imageResize.js';
 import type { AppConfig, CacheAdapter, CachedResponse, StorageAdapter } from './types.js';
 
 /** Filesystem-backed object storage (swap for S3 in production if desired). */
@@ -83,5 +85,28 @@ export function configFromProcessEnv(): AppConfig {
     slackWebhookUrl: env.SLACK_WEBHOOK_URL,
     discordWebhookUrl: env.DISCORD_WEBHOOK_URL,
     notifyEmailTo: env.NOTIFY_EMAIL_TO,
+    googleClientId: env.GOOGLE_CLIENT_ID,
+    googleClientSecret: env.GOOGLE_CLIENT_SECRET,
+    githubClientId: env.GITHUB_CLIENT_ID,
+    githubClientSecret: env.GITHUB_CLIENT_SECRET,
+    meilisearchUrl: env.MEILISEARCH_URL,
+    meilisearchApiKey: env.MEILISEARCH_API_KEY,
   };
+}
+
+async function readWasmModule(specifier: string): Promise<WebAssembly.Module> {
+  const url = await import.meta.resolve(specifier);
+  const bytes = await readFile(fileURLToPath(url));
+  return WebAssembly.compile(bytes);
+}
+
+/** Loads the WASM image codecs from disk — call once at startup, before serving requests. */
+export async function nodeImageCodecs(): Promise<ImageCodecModules> {
+  const [pngCodec, jpegDecodeCodec, jpegEncodeCodec, resizeCodec] = await Promise.all([
+    readWasmModule('@jsquash/png/codec/pkg/squoosh_png_bg.wasm'),
+    readWasmModule('@jsquash/jpeg/codec/dec/mozjpeg_dec.wasm'),
+    readWasmModule('@jsquash/jpeg/codec/enc/mozjpeg_enc.wasm'),
+    readWasmModule('@jsquash/resize/lib/resize/pkg/squoosh_resize_bg.wasm'),
+  ]);
+  return { pngCodec, jpegDecodeCodec, jpegEncodeCodec, resizeCodec };
 }

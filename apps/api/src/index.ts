@@ -6,7 +6,15 @@ import { cfCache, configFromEnv, r2Storage } from './platform/cloudflare.js';
 import { sqlKV } from './platform/kv.js';
 import { runScheduledPublish } from './services/scheduling.js';
 import { consoleEmailProvider } from './lib/email.js';
+import { registerImageCodecLoader } from './lib/imageResize.js';
 import type { Env } from './env.js';
+
+// Registered lazily (a dynamic import, not a static one) so the real `.wasm`
+// imports in platform/cloudflareWasm.ts are only ever reached by an actual
+// image-resize request — see that file and imageResize.ts for why.
+registerImageCodecLoader(() =>
+  import('./platform/cloudflareWasm.js').then((m) => m.cloudflareImageCodecs()),
+);
 
 const app = createApp((c) => {
   const db = createDb(c.env.DATABASE_URL, c.env.DATABASE_AUTH_TOKEN);

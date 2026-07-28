@@ -118,6 +118,8 @@ export interface FerroCmsClient {
 export * from './seo.js';
 export * from './richtext.js';
 export * from './i18n.js';
+export * from './media.js';
+export * from './analytics.js';
 
 export function createClient(options: ClientOptions): FerroCmsClient {
   const base = options.url.replace(/\/+$/, '');

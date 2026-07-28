@@ -94,6 +94,9 @@ export const api = {
       body: JSON.stringify({ token }),
     }),
 
+  oauthProviders: () =>
+    req<{ items: { id: string; label: string }[] }>('/api/auth/oauth/providers'),
+
   collections: () => req<{ items: CollectionSchema[] }>('/api/collections'),
 
   listEntries: (
