@@ -194,6 +194,25 @@ from API responses, unwritable fields are stripped from incoming writes:
 { name: 'internalNote', type: 'text', access: { read: atLeast('editor'), update: atLeast('editor') } }
 ```
 
+## Live preview
+
+Set `admin.previewUrlPattern` to a URL template for your own front-end's preview route — FerroCMS only
+supplies the draft data (via a minted, short-lived token); it never renders anything itself:
+
+```ts
+admin: {
+  useAsTitle: 'title',
+  previewUrlPattern: 'https://mysite.com/preview/:collection/:id?token=:token',
+}
+```
+
+The entry editor's **Preview** button substitutes `:collection`/`:id`/`:token` and renders the result
+in an iframe. Your front-end's preview route calls `client.preview(collection, id, token)` (the SDK)
+to fetch the draft — see [`examples/next-site`'s preview
+route](https://github.com/locateanup/FerroCMS/tree/main/examples/next-site/app/preview) for a working
+implementation. This reflects the last **saved** draft, not unsaved keystrokes — there's no live
+in-browser sync without your front-end opting into a postMessage protocol FerroCMS doesn't define.
+
 ## Lifecycle hooks
 
 `beforeChange` hooks can transform or reject data before a write; `afterChange`/`afterDelete` hooks run
