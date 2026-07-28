@@ -97,8 +97,12 @@ Legend: ✅ implemented · 🚧 planned
   token for one entry (`POST /:collection/:id/preview-token`), your front-end's own preview route
   calls `GET /:collection/:id/preview?token=...` (or `client.preview()` in the SDK) to render the
   draft. Same pattern as Next.js draft mode / Contentful / Sanity preview links.
-- 🚧 A rendered live-preview iframe inside the admin itself, drag-and-drop page builder, real-time
-  collaboration
+- ✅ A rendered live-preview iframe inside the admin itself — `admin.previewUrlPattern` on a
+  collection plus a Preview button in the entry editor, using the same minted-token backend above
+- ✅ Drag-and-drop reordering for rich-text blocks and repeater field rows (native HTML5 DnD, no
+  external library)
+- ✅ Presence — a "so-and-so is also editing this" banner while an entry is open (heartbeat-based; not
+  live keystroke-level collaborative editing — see `apps/api/src/services/presence.ts` for why)
 
 ### Media
 
