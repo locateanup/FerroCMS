@@ -20,6 +20,8 @@ export interface KVAdapter {
   get(key: string): Promise<string | null>;
   put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
   delete(key: string): Promise<void>;
+  /** Every non-expired `{key, value}` whose key starts with `prefix` — used for presence. */
+  list(prefix: string): Promise<Array<{ key: string; value: string }>>;
 }
 
 export interface CachedResponse {

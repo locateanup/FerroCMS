@@ -19,6 +19,14 @@ export interface CollectionAdminOptions {
   group?: string;
   /** Tabler icon name for the sidebar. */
   icon?: string;
+  /**
+   * URL template for live preview, rendered by your own front-end — FerroCMS
+   * only provides the draft data (via a minted preview token), never the
+   * rendering. Supports `:collection`, `:id`, and `:token` tokens, e.g.
+   * `https://mysite.com/preview/:collection/:id?token=:token`. Omit to hide
+   * the Preview panel for this collection.
+   */
+  previewUrlPattern?: string;
 }
 
 /** SEO options for a collection. `true` uses defaults. */

@@ -35,7 +35,12 @@ export const tags = defineTaxonomy({ slug: 'tags', hierarchical: false });
 export const posts = defineCollection({
   slug: 'posts',
   seo: { urlPattern: '/blog/:slug' },
-  admin: { icon: 'article', useAsTitle: 'title', defaultColumns: ['title', 'status'] },
+  admin: {
+    icon: 'article',
+    useAsTitle: 'title',
+    defaultColumns: ['title', 'status'],
+    previewUrlPattern: 'http://localhost:3000/preview/:collection/:id?token=:token',
+  },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 200 },
     { name: 'slug', type: 'slug', from: 'title', unique: true },
@@ -81,7 +86,11 @@ export const posts = defineCollection({
 export const pages = defineCollection({
   slug: 'pages',
   seo: { urlPattern: '/:slug' },
-  admin: { icon: 'file', useAsTitle: 'title' },
+  admin: {
+    icon: 'file',
+    useAsTitle: 'title',
+    previewUrlPattern: 'http://localhost:3000/preview/:collection/:id?token=:token',
+  },
   // i18n: body is translated per locale; title/slug stay single-locale (the
   // URL is the same page regardless of language in this demo). Arabic
   // demonstrates the RTL editor flip + translation-status indicators.

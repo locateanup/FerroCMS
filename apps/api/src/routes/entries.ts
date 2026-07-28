@@ -23,6 +23,7 @@ import { notifyAll } from '../lib/notifications.js';
 import type { Entry } from '@ferrocms/db';
 import * as svc from '../services/entries.js';
 import * as reviewSvc from '../services/review.js';
+import * as presenceSvc from '../services/presence.js';
 
 const router = new Hono<AppBindings>();
 
@@ -457,6 +458,35 @@ router.get('/:collection/:id/preview', async (c) => {
     accessArgs(null, id),
   );
   return c.json({ ...entry, data });
+});
+
+// Presence — "who else is editing this right now." The admin sends a
+// heartbeat every ~8s while the editor is open; GET returns everyone whose
+// heartbeat hasn't expired (see services/presence.ts). Not live collaborative
+// editing — just enough to warn "so-and-so is also editing this."
+router.post('/:collection/:id/presence', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, resolveAccess(collection.access).update, id);
+  await presenceSvc.heartbeat(c.get('kv'), collection.slug, id, user!);
+  const viewers = await presenceSvc.listViewers(c.get('kv'), collection.slug, id);
+  return c.json({ items: viewers });
+});
+
+router.get('/:collection/:id/presence', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  enforce(c, resolveAccess(collection.access).update, id);
+  const viewers = await presenceSvc.listViewers(c.get('kv'), collection.slug, id);
+  return c.json({ items: viewers });
+});
+
+router.delete('/:collection/:id/presence', async (c) => {
+  const collection = requireCollection(c.req.param('collection'));
+  const id = c.req.param('id');
+  const user = enforce(c, resolveAccess(collection.access).update, id);
+  await presenceSvc.leave(c.get('kv'), collection.slug, id, user!.id);
+  return c.body(null, 204);
 });
 
 // List an entry's revision history (newest first).

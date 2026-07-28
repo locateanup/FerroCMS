@@ -151,7 +151,12 @@ export interface CollectionSchema {
   slug: string;
   labels: { singular: string; plural: string };
   fields: Field[];
-  admin: { useAsTitle: string; icon?: string; defaultColumns?: string[] };
+  admin: {
+    useAsTitle: string;
+    icon?: string;
+    defaultColumns?: string[];
+    previewUrlPattern?: string;
+  };
   drafts: boolean;
   timestamps: boolean;
   taxonomyConfig: { enabled: boolean; hierarchical: boolean };
@@ -205,4 +210,11 @@ export interface Revision {
   data: Record<string, unknown>;
   authorId: string | null;
   createdAt: string;
+}
+
+export interface PresenceEntry {
+  userId: string;
+  email: string;
+  role: string;
+  lastSeen: string;
 }

@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test';
 
 const ADMIN_EMAIL = 'admin@e2e.test';
 const ADMIN_PASSWORD = 'correct horse battery staple';
+const SECOND_EMAIL = 'author@e2e.test';
+const SECOND_PASSWORD = 'another horse battery staple';
 
 // Smallest valid 1x1 transparent PNG — exercises the real header-based
 // dimension reader (see apps/api/src/lib/imageMeta.ts) without a fixture file.
@@ -16,6 +18,8 @@ const TEST_PNG = Buffer.from(
 // registered and created one. `test.step` keeps the steps reported
 // separately without paying for a fresh, signed-out context each time.
 test('admin: register, sign out/in, publish a post, upload media', async ({ page }) => {
+  let postId = '';
+
   await test.step('registers the first admin account', async () => {
     await page.goto('/');
     await expect(page.getByRole('heading', { name: 'Create your admin account' })).toBeVisible();
@@ -46,6 +50,8 @@ test('admin: register, sign out/in, publish a post, upload media', async ({ page
     await page.locator('#title').fill('My First E2E Post');
     await page.getByRole('button', { name: 'Publish' }).click();
     await expect(page.locator('.badge-published')).toBeVisible();
+    postId = page.url().split('/').pop()!;
+    expect(postId).toMatch(/^[0-9a-f-]{36}$/);
 
     await page.goto('/collections/posts');
     await expect(page.getByRole('link', { name: 'My First E2E Post' })).toBeVisible();
@@ -59,6 +65,94 @@ test('admin: register, sign out/in, publish a post, upload media', async ({ page
 
     await page.goto('/collections/posts');
     await expect(page.getByRole('link', { name: 'My First E2E Post (edited)' })).toBeVisible();
+  });
+
+  await test.step('drag-reorders repeater rows', async () => {
+    await page.goto(`/collections/posts/${postId}`);
+    // FieldInput's label() just capitalizes the field name's first letter (no
+    // camelCase humanizing), so "relatedLinks" renders as "RelatedLinks".
+    const repeaterField = page.locator('.field').filter({ hasText: 'RelatedLinks' });
+    const addButton = repeaterField.getByRole('button', { name: '+ Add RelatedLink' });
+    await addButton.click();
+    await addButton.click();
+
+    const rows = repeaterField.locator('.card');
+    await expect(rows).toHaveCount(2);
+    await rows.nth(0).locator('#label').fill('First Link');
+    await rows.nth(0).locator('#url').fill('https://example.com/first');
+    await rows.nth(1).locator('#label').fill('Second Link');
+    await rows.nth(1).locator('#url').fill('https://example.com/second');
+
+    // Native HTML5 drag-and-drop (see apps/admin/src/lib/dragReorder.ts).
+    // Playwright's locator.dragTo() doesn't reliably synthesize real
+    // dragstart/dragover/drop DOM events against this handler in this
+    // browser build, so dispatch them directly — drag the first row's grip
+    // handle onto the second row to swap them.
+    await page.evaluate(async () => {
+      const cards = [...document.querySelectorAll('.card')].filter((c) =>
+        c.querySelector(':scope > [title="Drag to reorder"]'),
+      );
+      const source = cards[0]!.querySelector('[title="Drag to reorder"]')!;
+      const target = cards[1]!;
+      const dataTransfer = new DataTransfer();
+      const fire = (el: Element, type: string) =>
+        el.dispatchEvent(new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer }));
+      fire(source, 'dragstart');
+      await new Promise((r) => setTimeout(r, 50));
+      fire(target, 'dragover');
+      fire(target, 'drop');
+      fire(source, 'dragend');
+    });
+
+    await expect(rows.nth(0).locator('#label')).toHaveValue('Second Link');
+    await expect(rows.nth(1).locator('#label')).toHaveValue('First Link');
+
+    await page.getByRole('button', { name: 'Save draft' }).click();
+    await expect(page.locator('.badge-draft')).toBeVisible();
+  });
+
+  await test.step('opens live preview', async () => {
+    // Scoped to .page-header — the block (rich text) editor has its own
+    // "Preview" toggle button too, an ambiguous match otherwise.
+    await page.locator('.page-header').getByRole('button', { name: 'Preview' }).click();
+    await expect(page.getByRole('button', { name: '← Back to editor' })).toBeVisible();
+    // Doesn't assert the iframe's rendered content — the example front-end
+    // this points at isn't part of the E2E harness — only that a real
+    // preview token was minted and templated into the URL correctly.
+    await expect(page.locator('iframe[title="Live preview"]')).toHaveAttribute(
+      'src',
+      /\/preview\/posts\/[0-9a-f-]{36}\?token=.+/,
+    );
+    await page.getByRole('button', { name: '← Back to editor' }).click();
+  });
+
+  await test.step('invites a second user', async () => {
+    await page.goto('/users');
+    await page.getByRole('button', { name: '+ Invite user' }).click();
+    await page.locator('#invite-email').fill(SECOND_EMAIL);
+    await page.locator('#invite-password').fill(SECOND_PASSWORD);
+    await page.getByRole('button', { name: 'Create user' }).click();
+    await expect(page.getByText(SECOND_EMAIL)).toBeVisible();
+  });
+
+  await test.step('shows presence when a second user opens the same entry', async () => {
+    const context2 = await page.context().browser()!.newContext();
+    const page2 = await context2.newPage();
+    await page2.goto('/');
+    await page2.getByLabel('Email').fill(SECOND_EMAIL);
+    await page2.getByLabel('Password').fill(SECOND_PASSWORD);
+    await page2.getByRole('button', { name: 'Sign in' }).click();
+    await expect(page2.getByRole('link', { name: 'Posts', exact: true })).toBeVisible();
+
+    await page2.goto(`/collections/posts/${postId}`);
+    await expect(page2.locator('#title')).toHaveValue('My First E2E Post (edited)');
+
+    // The admin's own presence heartbeat loop is on an 8s interval — reload
+    // to pick up the second user's heartbeat immediately instead of waiting.
+    await page.goto(`/collections/posts/${postId}`);
+    await expect(page.getByText(SECOND_EMAIL, { exact: false })).toBeVisible({ timeout: 15_000 });
+
+    await context2.close();
   });
 
   await test.step('uploads media', async () => {
