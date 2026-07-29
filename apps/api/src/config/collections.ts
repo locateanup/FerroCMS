@@ -21,8 +21,41 @@ export const authors = defineCollection({
   admin: { icon: 'user', useAsTitle: 'name' },
   fields: [
     { name: 'name', type: 'text', required: true, maxLength: 120 },
+    // Stable, human-readable id — referenced by a post's `author` field and
+    // by the /authors/:slug page on the Next.js side, so it must stay
+    // human-readable rather than the entry's opaque uuid.
+    { name: 'slug', type: 'slug', from: 'name', unique: true },
+    { name: 'role', type: 'text', maxLength: 120 },
     { name: 'bio', type: 'textarea', maxLength: 500 },
+    {
+      name: 'url',
+      type: 'text',
+      maxLength: 300,
+      admin: { help: 'Link to their About page section or personal site.' },
+    },
     { name: 'avatar', type: 'media' },
+  ],
+});
+
+// Affiliate/referral partners — moneyinsider.co routes every affiliate link
+// through /go/{slug} on the Next.js side, so the real destination URL lives
+// here in one place instead of being hardcoded across articles.
+export const affiliatePartners = defineCollection({
+  slug: 'affiliate-partners',
+  drafts: false,
+  admin: { icon: 'link', useAsTitle: 'name' },
+  fields: [
+    { name: 'name', type: 'text', required: true, maxLength: 120 },
+    // Stable id used in /go/:slug and a post's sidebarPartner field — must
+    // stay human-readable (e.g. "zerodha"), not the entry's opaque uuid.
+    { name: 'slug', type: 'slug', from: 'name', unique: true },
+    { name: 'url', type: 'text', required: true, maxLength: 500 },
+    {
+      name: 'network',
+      type: 'text',
+      maxLength: 120,
+      admin: { help: 'e.g. direct, Impact, CJ Affiliate — for your own reporting.' },
+    },
   ],
 });
 
@@ -111,7 +144,7 @@ export const pages = defineCollection({
 
 // Plugins can contribute collections and/or merge hooks into existing ones.
 export const collections: ResolvedCollection[] = applyPlugins(
-  [posts, pages, authors, categories, tags],
+  [posts, pages, authors, affiliatePartners, categories, tags],
   [],
 );
 
