@@ -59,80 +59,105 @@ export const affiliatePartners = defineCollection({
   ],
 });
 
-// Hierarchical taxonomy — categories can nest (e.g. Engineering > Backend).
-export const categories = defineTaxonomy({ slug: 'categories' });
-
-// Flat taxonomy — tags don't nest.
+// Flat taxonomy — tags don't nest. (No "categories" taxonomy — moneyinsider's
+// content pillars are a fixed 5-value select on the post itself, not an
+// open-ended taxonomy.)
 export const tags = defineTaxonomy({ slug: 'tags', hierarchical: false });
 
 export const posts = defineCollection({
   slug: 'posts',
-  seo: { urlPattern: '/blog/:slug' },
+  // moneyinsider.co's real URL is /{pillar}/{slug} — fillUrlPattern only
+  // substitutes :collection/:slug, not arbitrary entry fields, so this
+  // pattern is informational only. The Next.js site builds its own
+  // canonical/sitemap URLs from the `pillar` field and never reads
+  // FerroCMS's own canonicalUrl/sitemap output for posts.
+  seo: true,
   admin: {
     icon: 'article',
     useAsTitle: 'title',
-    defaultColumns: ['title', 'status'],
+    defaultColumns: ['title', 'pillar', 'status'],
     previewUrlPattern: 'http://localhost:3000/preview/:collection/:id?token=:token',
   },
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 200 },
     { name: 'slug', type: 'slug', from: 'title', unique: true },
-    { name: 'excerpt', type: 'textarea', maxLength: 300 },
-    { name: 'coverImage', type: 'media' },
-    { name: 'author', type: 'relation', relationTo: 'authors' },
-    { name: 'body', type: 'richText' },
-    { name: 'categories', type: 'taxonomy', taxonomy: 'categories' },
-    { name: 'tags', type: 'taxonomy', taxonomy: 'tags' },
-    // Field-level permission: any author can create/edit a post, but only
-    // editors+ may toggle whether it's featured on the homepage.
+    { name: 'description', type: 'textarea', required: true, maxLength: 300 },
     {
-      name: 'featured',
-      type: 'boolean',
-      defaultValue: false,
-      access: { update: atLeast('editor') },
-    },
-    // Conditional field: only shown (and only required) once "Featured" is checked.
-    {
-      name: 'featuredNote',
-      type: 'text',
-      maxLength: 200,
+      name: 'pillar',
+      type: 'select',
       required: true,
-      admin: {
-        condition: { field: 'featured', truthy: true },
-        help: 'Shown once "Featured" is checked — why this post is featured.',
-      },
-    },
-    // Repeater: a variable-length list of sub-fields, stored as an array.
-    {
-      name: 'relatedLinks',
-      type: 'repeater',
-      maxRows: 5,
-      admin: { group: 'Related' },
-      fields: [
-        { name: 'label', type: 'text', required: true, maxLength: 80 },
-        { name: 'url', type: 'text', required: true, maxLength: 500 },
+      options: [
+        { label: 'First job & paycheck basics', value: 'first-job' },
+        { label: 'Building credit & banking', value: 'building-credit' },
+        { label: 'Student loans & debt payoff', value: 'student-loans' },
+        { label: 'Budgeting & saving', value: 'budgeting' },
+        { label: 'Starter investing', value: 'investing' },
       ],
     },
+    // No custom publishedAt field — every entry already has a system
+    // publishedAt (set when status becomes "published"), which is what
+    // Next.js reads as the article's publish date.
+    {
+      name: 'revisedAt',
+      type: 'date',
+      admin: {
+        help: 'Bump this whenever you meaningfully revise the guide — unlike the system\'s updatedAt (which changes on every save, including drafts), this is a deliberate freshness signal shown in the byline.',
+      },
+    },
+    { name: 'author', type: 'relation', relationTo: 'authors' },
+    {
+      name: 'country',
+      type: 'select',
+      options: [{ label: 'India', value: 'IN' }],
+    },
+    {
+      name: 'youtube',
+      type: 'text',
+      admin: { help: 'Just the video ID from the URL, e.g. dQw4w9WgXcQ' },
+    },
+    { name: 'cover', type: 'media' },
+    { name: 'tags', type: 'taxonomy', taxonomy: 'tags' },
+    { name: 'featured', type: 'boolean', defaultValue: false },
+    {
+      name: 'sidebarPartner',
+      type: 'relation',
+      relationTo: 'affiliate-partners',
+      admin: {
+        group: 'Sidebar',
+        help: 'Highlights this partner in the article sidebar.',
+      },
+    },
+    {
+      name: 'faq',
+      type: 'repeater',
+      admin: { help: 'Adds an FAQ section + FAQPage schema at the end of the article.' },
+      fields: [
+        { name: 'question', type: 'text', required: true, maxLength: 200 },
+        { name: 'answer', type: 'textarea', required: true, maxLength: 500 },
+      ],
+    },
+    { name: 'body', type: 'richText' },
   ],
 });
 
 export const pages = defineCollection({
   slug: 'pages',
-  seo: { urlPattern: '/:slug' },
+  seo: true,
   admin: {
     icon: 'file',
     useAsTitle: 'title',
     previewUrlPattern: 'http://localhost:3000/preview/:collection/:id?token=:token',
   },
-  // i18n: body is translated per locale; title/slug stay single-locale (the
-  // URL is the same page regardless of language in this demo). Arabic
-  // demonstrates the RTL editor flip + translation-status indicators.
-  locales: ['en', 'fr', 'ar'],
-  defaultLocale: 'en',
   fields: [
     { name: 'title', type: 'text', required: true, maxLength: 200 },
     { name: 'slug', type: 'slug', from: 'title', unique: true, required: true },
-    { name: 'body', type: 'richText', localized: true },
+    { name: 'description', type: 'textarea', required: true, maxLength: 300 },
+    {
+      name: 'revisedAt',
+      type: 'date',
+      admin: { help: 'Bump this whenever you meaningfully revise the page.' },
+    },
+    { name: 'body', type: 'richText' },
   ],
   access: {
     // Only editors and admins can manage pages.
@@ -144,7 +169,7 @@ export const pages = defineCollection({
 
 // Plugins can contribute collections and/or merge hooks into existing ones.
 export const collections: ResolvedCollection[] = applyPlugins(
-  [posts, pages, authors, affiliatePartners, categories, tags],
+  [posts, pages, authors, affiliatePartners, tags],
   [],
 );
 

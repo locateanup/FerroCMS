@@ -616,6 +616,9 @@ router.post('/:collection/:id/clone', async (c) => {
 const importItemSchema = z.object({
   data: z.record(z.unknown()),
   status: statusSchema.optional(),
+  // Preserves a historical publish date on import instead of stamping "now"
+  // — only applied when status is 'published'.
+  publishedAt: z.coerce.date().optional(),
 });
 const importBodySchema = z.object({ items: z.array(importItemSchema).min(1).max(500) });
 
@@ -647,6 +650,7 @@ router.post('/:collection/import', async (c) => {
         data: validation.data!,
         status,
         scheduledAt,
+        publishedAt: item.publishedAt,
         user,
       });
       result.created.push(entry.id);

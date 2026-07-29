@@ -16,6 +16,8 @@ const BLOCK_LABELS: Record<RichTextBlock['type'], string> = {
   quote: 'Quote',
   code: 'Code',
   image: 'Image',
+  callout: 'Callout',
+  adSlot: 'Ad slot',
 };
 
 function newBlock(type: RichTextBlock['type']): RichTextBlock {
@@ -32,6 +34,10 @@ function newBlock(type: RichTextBlock['type']): RichTextBlock {
       return { type: 'code', code: '' };
     case 'image':
       return { type: 'image', key: '' };
+    case 'callout':
+      return { type: 'callout', tone: 'info', text: '' };
+    case 'adSlot':
+      return { type: 'adSlot' };
   }
 }
 
@@ -287,6 +293,43 @@ function BlockFields({
             placeholder="Caption (optional)"
             onChange={(e) => onChange({ ...block, caption: e.target.value || undefined })}
           />
+        </div>
+      );
+    case 'callout':
+      return (
+        <div>
+          <div className="row" style={{ gap: 8, marginBottom: 6 }}>
+            <select
+              style={{ width: 120 }}
+              value={block.tone}
+              onChange={(e) =>
+                onChange({ ...block, tone: e.target.value as typeof block.tone })
+              }
+            >
+              <option value="info">Info</option>
+              <option value="tip">Tip</option>
+              <option value="warning">Warning</option>
+            </select>
+            <input
+              style={{ flex: 1 }}
+              value={block.title ?? ''}
+              placeholder="Title (optional)"
+              onChange={(e) => onChange({ ...block, title: e.target.value || undefined })}
+            />
+          </div>
+          <textarea
+            rows={3}
+            value={block.text}
+            placeholder="Callout text… supports **bold**, *italic*, `code`, [link](url)"
+            onChange={(e) => onChange({ ...block, text: e.target.value })}
+          />
+        </div>
+      );
+    case 'adSlot':
+      return (
+        <div className="muted" style={{ fontSize: 12 }}>
+          Reserves a fixed-height ad placement at this position in the article. No fields — the
+          front-end decides what renders here.
         </div>
       );
   }

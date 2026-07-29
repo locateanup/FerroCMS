@@ -117,6 +117,12 @@ export interface CreateInput {
   status: EntryStatus;
   /** Only persisted when `status` is `'scheduled'`. */
   scheduledAt?: Date | null;
+  /**
+   * Only honored when `status` is `'published'` — lets a content import
+   * preserve a historical publish date instead of stamping "now". Defaults
+   * to the current time, same as before this option existed.
+   */
+  publishedAt?: Date | null;
   user: AuthUser | null;
 }
 
@@ -131,7 +137,7 @@ export async function createEntry(db: Db, input: CreateInput): Promise<Entry> {
   });
 
   const slug = resolveSlug(collection, data);
-  const publishedAt = status === 'published' ? new Date() : null;
+  const publishedAt = status === 'published' ? (input.publishedAt ?? new Date()) : null;
   const scheduledAt = status === 'scheduled' ? (input.scheduledAt ?? null) : null;
 
   const [row] = await db

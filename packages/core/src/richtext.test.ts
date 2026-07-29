@@ -15,8 +15,16 @@ describe('richTextValueSchema', () => {
       { type: 'quote', text: 'Quoted' },
       { type: 'code', code: 'const x = 1;', language: 'ts' },
       { type: 'image', key: '2026/a.png', alt: 'A' },
+      { type: 'callout', tone: 'warning', title: 'Heads up', text: 'Careful' },
+      { type: 'adSlot' },
     ];
     expect(richTextValueSchema.safeParse(value).success).toBe(true);
+  });
+
+  it('rejects an invalid callout tone', () => {
+    expect(
+      richTextValueSchema.safeParse([{ type: 'callout', tone: 'danger', text: 'x' }]).success,
+    ).toBe(false);
   });
 
   it('rejects an unknown block type', () => {
@@ -86,6 +94,27 @@ describe('renderRichTextHtml', () => {
     expect(html).toContain('<pre><code class="language-ts">a &lt; b</code></pre>');
     expect(html).toContain('<img src="https://cdn.test/k.png" alt="alt text" />');
     expect(html).toContain('<figcaption>a <strong>caption</strong></figcaption>');
+  });
+
+  it('renders a callout with tone class and optional title', () => {
+    const html = renderRichTextHtml([
+      { type: 'callout', tone: 'tip', title: 'Pro tip', text: 'Do **this**' },
+    ]);
+    expect(html).toContain('class="callout callout-tip"');
+    expect(html).toContain('<strong class="callout-title">Pro tip</strong>');
+    expect(html).toContain('<p>Do <strong>this</strong></p>');
+  });
+
+  it('renders a callout with no title', () => {
+    const html = renderRichTextHtml([{ type: 'callout', tone: 'info', text: 'Just text' }]);
+    expect(html).not.toContain('callout-title');
+    expect(html).toContain('class="callout callout-info"');
+  });
+
+  it('renders an ad slot as an empty placeholder div', () => {
+    expect(renderRichTextHtml([{ type: 'adSlot' }])).toBe(
+      '<div class="ad-slot" data-ad-slot="true"></div>',
+    );
   });
 
   it('returns an empty string for empty/undefined content', () => {
