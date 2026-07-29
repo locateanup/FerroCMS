@@ -11,6 +11,7 @@ import { checkRateLimit, clientIp } from '../lib/rateLimit.js';
 const router = new Hono<AppBindings>();
 
 const STATE_TTL_SECONDS = 10 * 60;
+const START_LIMIT = { windowSeconds: 15 * 60, max: 30 };
 const CALLBACK_LIMIT = { windowSeconds: 15 * 60, max: 20 };
 
 function findProvider(c: Context<AppBindings>, id: string): OAuthProvider {
@@ -35,6 +36,11 @@ router.get('/providers', (c) => {
 // Step 1: redirect the browser to the provider with a CSRF-protecting state token.
 router.get('/:provider', async (c) => {
   const provider = findProvider(c, c.req.param('provider'));
+
+  const ip = clientIp(c.req.raw.headers);
+  const limit = await checkRateLimit(c.get('kv'), `oauth-start:${ip}`, START_LIMIT);
+  if (!limit.allowed) throw errors.tooManyRequests();
+
   const state = randomToken();
   await c.get('kv').put(`oauth-state:${state}`, provider.id, { expirationTtl: STATE_TTL_SECONDS });
   return c.redirect(provider.authorizeUrl(state, redirectUri(c, provider.id)));

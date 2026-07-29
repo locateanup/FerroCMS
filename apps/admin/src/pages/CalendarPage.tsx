@@ -102,7 +102,7 @@ export function CalendarPage() {
               key={w}
               className="muted"
               style={{
-                background: 'var(--surface-1)',
+                background: 'var(--surface)',
                 padding: '6px 8px',
                 fontSize: 11,
                 textAlign: 'center',
@@ -130,7 +130,7 @@ export function CalendarPage() {
                   style={{
                     fontSize: 11,
                     fontWeight: isToday ? 700 : 400,
-                    color: isToday ? 'var(--text-primary)' : undefined,
+                    color: isToday ? 'var(--text)' : undefined,
                   }}
                 >
                   {day.getDate()}
@@ -145,7 +145,7 @@ export function CalendarPage() {
                       padding: '2px 4px',
                       marginTop: 2,
                       borderRadius: 3,
-                      background: item.status === 'published' ? 'var(--surface-1)' : 'transparent',
+                      background: item.status === 'published' ? 'var(--surface)' : 'transparent',
                       border: '1px solid var(--border)',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',

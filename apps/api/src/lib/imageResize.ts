@@ -43,15 +43,23 @@ export function registerImageCodecLoader(load: ImageCodecLoader): void {
 function ensureReady(): Promise<void> {
   if (!ready) {
     if (!loader) throw new Error('registerImageCodecLoader() was not called at startup.');
-    ready = loader().then((modules) =>
-      Promise.all([
-        initPngDecode(modules.pngCodec),
-        initPngEncode(modules.pngCodec),
-        initJpegDecode(modules.jpegDecodeCodec),
-        initJpegEncode(modules.jpegEncodeCodec),
-        initResize(modules.resizeCodec),
-      ]).then(() => undefined),
-    );
+    ready = loader()
+      .then((modules) =>
+        Promise.all([
+          initPngDecode(modules.pngCodec),
+          initPngEncode(modules.pngCodec),
+          initJpegDecode(modules.jpegDecodeCodec),
+          initJpegEncode(modules.jpegEncodeCodec),
+          initResize(modules.resizeCodec),
+        ]).then(() => undefined),
+      )
+      .catch((err: unknown) => {
+        // Don't wedge every future request behind one transient failure
+        // (e.g. a cold-start hiccup reading the WASM bytes) — let the next
+        // call to ensureReady() try loading the codecs again.
+        ready = undefined;
+        throw err;
+      });
   }
   return ready;
 }

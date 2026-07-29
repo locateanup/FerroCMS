@@ -81,7 +81,7 @@ export function BlockEditor({ value, onChange }: Props) {
           gap: 6,
           padding: '6px 8px',
           borderBottom: '1px solid var(--border)',
-          background: 'var(--surface-1)',
+          background: 'var(--surface-2)',
           flexWrap: 'wrap',
           alignItems: 'center',
         }}

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { api, ApiError } from '../lib/api.js';
 import { useAuth } from '../lib/auth.js';
+import { ThemeToggle } from '../components/ThemeToggle.js';
 
 export function LoginPage() {
   const { login, register, completeTotpLogin } = useAuth();
@@ -75,7 +76,8 @@ export function LoginPage() {
         <div className="card auth-card">
           <div className="brand" style={{ padding: 0, marginBottom: 16 }}>
             <span className="brand-mark">F</span>
-            <span style={{ fontWeight: 600 }}>FerroCMS</span>
+            <span style={{ fontWeight: 600, flex: 1 }}>FerroCMS</span>
+            <ThemeToggle />
           </div>
           <h1 style={{ fontSize: 18, margin: '0 0 4px' }}>Two-factor code</h1>
           <p className="muted" style={{ marginTop: 0, fontSize: 13 }}>
@@ -127,7 +129,8 @@ export function LoginPage() {
       <div className="card auth-card">
         <div className="brand" style={{ padding: 0, marginBottom: 16 }}>
           <span className="brand-mark">F</span>
-          <span style={{ fontWeight: 600 }}>FerroCMS</span>
+          <span style={{ fontWeight: 600, flex: 1 }}>FerroCMS</span>
+          <ThemeToggle />
         </div>
         <h1 style={{ fontSize: 18, margin: '0 0 4px' }}>
           {mode === 'register' ? 'Create your admin account' : 'Sign in'}

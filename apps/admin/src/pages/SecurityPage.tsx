@@ -91,7 +91,7 @@ export function SecurityPage() {
               style={{
                 fontFamily: 'monospace',
                 fontSize: 13,
-                background: 'var(--surface-1)',
+                background: 'var(--surface-2)',
                 padding: '8px 10px',
                 borderRadius: 'var(--radius)',
                 wordBreak: 'break-all',

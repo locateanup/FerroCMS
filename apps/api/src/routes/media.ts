@@ -6,7 +6,7 @@ import type { AppBindings } from '../env.js';
 import { enforce } from '../auth/middleware.js';
 import { errors } from '../lib/errors.js';
 import { randomToken } from '../lib/crypto.js';
-import { detectImageDimensions } from '../lib/imageMeta.js';
+import { detectImageDimensions, type ImageDimensions } from '../lib/imageMeta.js';
 import { generateResponsiveVariants, RESIZABLE_MIME_TYPES } from '../lib/imageResize.js';
 import { logAudit } from '../services/audit.js';
 import type { StoredObject } from '../platform/types.js';
@@ -175,12 +175,25 @@ router.get('/file/:key{.+}', async (c) => {
     if (!original) throw errors.notFound('File');
     if (original.contentType && RESIZABLE_MIME_TYPES.has(original.contentType)) {
       const bytes = await toArrayBuffer(original.body);
-      const [generated] = await generateResponsiveVariants(bytes, original.contentType, [width]);
-      if (generated) {
-        await storage.put(vKey, generated.data.buffer as ArrayBuffer, {
-          contentType: original.contentType,
-        });
-        return serveObject({ body: generated.data, contentType: original.contentType });
+      // Cheap header-only check first — skips the WASM decode/resize/encode
+      // round-trip entirely (and caches nothing new) when the source is
+      // already narrower than the requested width, which would otherwise
+      // re-run on every request for that width forever (no variant is ever
+      // written for a no-op resize).
+      let dimensions: ImageDimensions | null;
+      try {
+        dimensions = detectImageDimensions(bytes, original.contentType);
+      } catch {
+        dimensions = null;
+      }
+      if (!dimensions || width < dimensions.width) {
+        const [generated] = await generateResponsiveVariants(bytes, original.contentType, [width]);
+        if (generated) {
+          await storage.put(vKey, generated.data.buffer as ArrayBuffer, {
+            contentType: original.contentType,
+          });
+          return serveObject({ body: generated.data, contentType: original.contentType });
+        }
       }
     }
     // Not resizable, or the requested width isn't smaller than the original — serve it as-is.

@@ -268,7 +268,7 @@ export function EntryEditorPage() {
           style={{
             padding: '8px 12px',
             marginBottom: 14,
-            background: 'var(--surface-1)',
+            background: 'var(--surface-2)',
             fontSize: 13,
           }}
         >
@@ -294,8 +294,8 @@ export function EntryEditorPage() {
                     ? {
                         padding: '4px 12px',
                         fontSize: 12,
-                        background: 'var(--text-primary)',
-                        color: 'var(--surface-2)',
+                        background: 'var(--text)',
+                        color: 'var(--surface)',
                       }
                     : { padding: '4px 12px', fontSize: 12 }
                 }
