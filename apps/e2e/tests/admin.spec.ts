@@ -48,6 +48,10 @@ test('admin: register, sign out/in, publish a post, upload media', async ({ page
     // `#title` (not getByLabel) — the SEO fields this collection injects
     // include a "Meta title" field, an ambiguous substring match otherwise.
     await page.locator('#title').fill('My First E2E Post');
+    // `description` and `pillar` are also required on this collection's
+    // moneyinsider-specific schema — publish is rejected without them.
+    await page.locator('#description').fill('An E2E test post.');
+    await page.locator('#pillar').selectOption('first-job');
     await page.getByRole('button', { name: 'Publish' }).click();
     await expect(page.locator('.badge-published')).toBeVisible();
     postId = page.url().split('/').pop()!;
@@ -70,18 +74,18 @@ test('admin: register, sign out/in, publish a post, upload media', async ({ page
   await test.step('drag-reorders repeater rows', async () => {
     await page.goto(`/collections/posts/${postId}`);
     // FieldInput's label() just capitalizes the field name's first letter (no
-    // camelCase humanizing), so "relatedLinks" renders as "RelatedLinks".
-    const repeaterField = page.locator('.field').filter({ hasText: 'RelatedLinks' });
-    const addButton = repeaterField.getByRole('button', { name: '+ Add RelatedLink' });
+    // camelCase humanizing), so "faq" renders as "Faq".
+    const repeaterField = page.locator('.field').filter({ hasText: 'Faq' });
+    const addButton = repeaterField.getByRole('button', { name: '+ Add Faq' });
     await addButton.click();
     await addButton.click();
 
     const rows = repeaterField.locator('.card');
     await expect(rows).toHaveCount(2);
-    await rows.nth(0).locator('#label').fill('First Link');
-    await rows.nth(0).locator('#url').fill('https://example.com/first');
-    await rows.nth(1).locator('#label').fill('Second Link');
-    await rows.nth(1).locator('#url').fill('https://example.com/second');
+    await rows.nth(0).locator('#question').fill('First question?');
+    await rows.nth(0).locator('#answer').fill('First answer.');
+    await rows.nth(1).locator('#question').fill('Second question?');
+    await rows.nth(1).locator('#answer').fill('Second answer.');
 
     // Native HTML5 drag-and-drop (see apps/admin/src/lib/dragReorder.ts).
     // Playwright's locator.dragTo() doesn't reliably synthesize real
@@ -104,8 +108,8 @@ test('admin: register, sign out/in, publish a post, upload media', async ({ page
       fire(source, 'dragend');
     });
 
-    await expect(rows.nth(0).locator('#label')).toHaveValue('Second Link');
-    await expect(rows.nth(1).locator('#label')).toHaveValue('First Link');
+    await expect(rows.nth(0).locator('#question')).toHaveValue('Second question?');
+    await expect(rows.nth(1).locator('#question')).toHaveValue('First question?');
 
     await page.getByRole('button', { name: 'Save draft' }).click();
     await expect(page.locator('.badge-draft')).toBeVisible();

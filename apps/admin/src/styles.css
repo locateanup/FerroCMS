@@ -188,16 +188,31 @@ label {
   color: var(--text-secondary);
 }
 
-/* Layout */
+/* Layout — a fixed-height app shell: the sidebar and content each scroll
+   independently, so a long nav list (many collections/globals/admin links)
+   never pushes the sign-out button below an unreachable fold, and a long
+   content page never grows the whole document instead of just its pane. */
 .layout {
   display: grid;
   grid-template-columns: 220px 1fr;
-  min-height: 100vh;
+  height: 100vh;
 }
 .sidebar {
   background: var(--surface-2);
   border-right: 1px solid var(--border);
-  padding: 16px 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.sidebar-header {
+  padding: 16px 12px 0;
+}
+.sidebar-nav {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 12px 12px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -240,14 +255,11 @@ label {
   background: var(--accent-bg);
   color: var(--accent);
 }
-.sidebar .spacer {
-  margin-top: auto;
-}
 .user-chip {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 8px;
+  padding: 10px 12px;
   border-top: 1px solid var(--border);
 }
 .avatar {
@@ -266,6 +278,8 @@ label {
 .content {
   padding: 24px 28px;
   max-width: 1000px;
+  height: 100%;
+  overflow-y: auto;
 }
 .page-header {
   display: flex;
