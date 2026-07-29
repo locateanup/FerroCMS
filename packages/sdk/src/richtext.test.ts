@@ -51,4 +51,19 @@ describe('renderRichTextHtml', () => {
     const html = renderRichTextHtml([{ type: 'paragraph', text: '<script>alert(1)</script>' }]);
     expect(html).not.toContain('<script>');
   });
+
+  it('renders a callout with tone class and optional title', () => {
+    const html = renderRichTextHtml([
+      { type: 'callout', tone: 'warning', title: 'Watch out', text: 'Be careful' },
+    ]);
+    expect(html).toContain('class="callout callout-warning"');
+    expect(html).toContain('<strong class="callout-title">Watch out</strong>');
+    expect(html).toContain('<p>Be careful</p>');
+  });
+
+  it('renders an ad slot as an empty placeholder div', () => {
+    expect(renderRichTextHtml([{ type: 'adSlot' }])).toBe(
+      '<div class="ad-slot" data-ad-slot="true"></div>',
+    );
+  });
 });

@@ -37,3 +37,8 @@ coverage/
 playwright-report/
 test-results/
 apps/e2e/.tmp/
+
+# local sqlite db (file:/:memory: DATABASE_URL for self-hosting without Turso)
+*.db
+*.db-shm
+*.db-wal

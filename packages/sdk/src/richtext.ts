@@ -35,9 +35,27 @@ export interface ImageBlock {
   alt?: string;
   caption?: string;
 }
+export type CalloutTone = 'info' | 'tip' | 'warning';
+export interface CalloutBlock {
+  type: 'callout';
+  tone: CalloutTone;
+  title?: string;
+  text: string;
+}
+/** A reserved-height ad placement marker — no content, just a position. */
+export interface AdSlotBlock {
+  type: 'adSlot';
+}
 
 export type RichTextBlock =
-  ParagraphBlock | HeadingBlock | QuoteBlock | ListBlock | CodeBlock | ImageBlock;
+  | ParagraphBlock
+  | HeadingBlock
+  | QuoteBlock
+  | ListBlock
+  | CodeBlock
+  | ImageBlock
+  | CalloutBlock
+  | AdSlotBlock;
 
 export type RichTextValue = RichTextBlock[];
 
@@ -99,6 +117,14 @@ function renderBlock(block: RichTextBlock, opts: RenderRichTextOptions): string 
         ? `<figure>${img}<figcaption>${renderInline(block.caption)}</figcaption></figure>`
         : img;
     }
+    case 'callout': {
+      const title = block.title
+        ? `<strong class="callout-title">${renderInline(block.title)}</strong>`
+        : '';
+      return `<div class="callout callout-${block.tone}">${title}<p>${renderInline(block.text)}</p></div>`;
+    }
+    case 'adSlot':
+      return `<div class="ad-slot" data-ad-slot="true"></div>`;
   }
 }
 
