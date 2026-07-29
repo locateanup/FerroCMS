@@ -101,7 +101,7 @@ export const posts = defineCollection({
       name: 'revisedAt',
       type: 'date',
       admin: {
-        help: 'Bump this whenever you meaningfully revise the guide — unlike the system\'s updatedAt (which changes on every save, including drafts), this is a deliberate freshness signal shown in the byline.',
+        help: "Bump this whenever you meaningfully revise the guide — unlike the system's updatedAt (which changes on every save, including drafts), this is a deliberate freshness signal shown in the byline.",
       },
     },
     { name: 'author', type: 'relation', relationTo: 'authors' },

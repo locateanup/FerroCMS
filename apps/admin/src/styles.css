@@ -278,6 +278,7 @@ label {
 .content {
   padding: 24px 28px;
   max-width: 1000px;
+  margin: 0 auto;
   height: 100%;
   overflow-y: auto;
 }
