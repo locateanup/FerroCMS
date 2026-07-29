@@ -302,9 +302,7 @@ function BlockFields({
             <select
               style={{ width: 120 }}
               value={block.tone}
-              onChange={(e) =>
-                onChange({ ...block, tone: e.target.value as typeof block.tone })
-              }
+              onChange={(e) => onChange({ ...block, tone: e.target.value as typeof block.tone })}
             >
               <option value="info">Info</option>
               <option value="tip">Tip</option>

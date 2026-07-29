@@ -52,7 +52,7 @@ export const siteSettings = defineGlobal({
       type: 'repeater',
       admin: {
         group: 'Sidebar',
-        help: "Shown in every article's sidebar. Each entry is \"{pillar}/{slug}\", matching the article's URL path.",
+        help: 'Shown in every article\'s sidebar. Each entry is "{pillar}/{slug}", matching the article\'s URL path.',
       },
       fields: [{ name: 'path', type: 'text', required: true, maxLength: 200 }],
     },
