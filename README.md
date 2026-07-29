@@ -91,6 +91,8 @@ Legend: ✅ implemented
 ### Admin
 
 - ✅ Clean React admin dashboard (login, collection lists, generated editor, media library)
+- ✅ Light/dark theme — a light/system/dark switcher in the sidebar (and on the login screen),
+  persisted to `localStorage`, defaults to the OS preference (`prefers-color-scheme`)
 - ✅ Relation & media field pickers
 - ✅ First-run admin setup
 - ✅ Draft/preview API — the backend half of live preview: an editor mints a short-lived signed
