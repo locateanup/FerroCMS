@@ -4,6 +4,7 @@ import { useAuth } from '../lib/auth.js';
 import { useCollections } from '../lib/collections.js';
 import { useGlobals } from '../lib/globals.js';
 import { canAccessPage, getAdminPages } from '../lib/pageRegistry.js';
+import { ThemeToggle } from './ThemeToggle.js';
 
 function initials(name: string | null, email: string): string {
   if (name) {
@@ -27,7 +28,8 @@ export function Layout({ children }: { children: ReactNode }) {
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark">F</span>
-          <span>FerroCMS</span>
+          <span style={{ flex: 1 }}>FerroCMS</span>
+          <ThemeToggle />
         </div>
 
         <input
