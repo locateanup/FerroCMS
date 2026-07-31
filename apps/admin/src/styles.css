@@ -197,6 +197,12 @@ label {
   grid-template-columns: 220px 1fr;
   height: 100vh;
 }
+.sidebar-toggle {
+  display: none;
+}
+.sidebar-backdrop {
+  display: none;
+}
 .sidebar {
   background: var(--surface-2);
   border-right: 1px solid var(--border);
@@ -204,6 +210,54 @@ label {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+}
+
+/* Below this width the sidebar becomes an off-canvas panel (toggled by
+   .sidebar-toggle, closed by tapping .sidebar-backdrop or a nav link)
+   instead of a permanent 220px column — a fixed column left no usable
+   width for content on a phone/narrow-tablet viewport. */
+@media (max-width: 880px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .sidebar-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    top: 12px;
+    left: 12px;
+    z-index: 60;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: -260px;
+    width: 260px;
+    z-index: 55;
+    transition: left 0.18s ease;
+    box-shadow: 2px 0 16px rgba(0, 0, 0, 0.35);
+  }
+  .sidebar.open {
+    left: 0;
+  }
+  .sidebar-backdrop.open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(0, 0, 0, 0.4);
+  }
+  .content {
+    padding-top: 64px;
+  }
 }
 .sidebar-header {
   padding: 16px 12px 0;
@@ -277,8 +331,7 @@ label {
 
 .content {
   padding: 24px 28px;
-  max-width: 1000px;
-  margin: 0 auto;
+  max-width: 2200px;
   height: 100%;
   overflow-y: auto;
 }

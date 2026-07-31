@@ -43,10 +43,36 @@ export const siteSettings = defineGlobal({
         { name: 'subtext', type: 'text', maxLength: 300 },
       ],
     },
-    // Editor-curated sidebar list. Articles stay as MDX files (not FerroCMS
-    // entries) in this phase, so this is a plain "{pillar}/{slug}" path list
-    // rather than a `relation` field — there's no FerroCMS collection to
-    // relate to yet.
+    // Rates/indices strip above the site masthead. Deliberately editorial
+    // rather than a live market feed — a flaky third-party quote API at the
+    // very top of every page is a worse trade than a number an editor
+    // refreshes on purpose. An empty list hides the strip entirely.
+    {
+      name: 'ticker',
+      type: 'repeater',
+      admin: {
+        group: 'Ticker bar',
+        help: 'Shown above the masthead. Leave empty to hide the strip.',
+      },
+      fields: [
+        { name: 'label', type: 'text', required: true, maxLength: 40 },
+        { name: 'value', type: 'text', required: true, maxLength: 40 },
+        {
+          name: 'trend',
+          type: 'select',
+          defaultValue: 'flat',
+          options: [
+            { label: 'No arrow', value: 'flat' },
+            { label: 'Up', value: 'up' },
+            { label: 'Down', value: 'down' },
+          ],
+        },
+      ],
+    },
+    // Editor-curated sidebar list. Stored as plain "{pillar}/{slug}" URL
+    // paths rather than relations to `posts`: the consuming site looks these
+    // up by path, and a path keeps working if the entry is rebuilt, while a
+    // relation id would not.
     {
       name: 'popularPosts',
       type: 'repeater',

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.js';
 import { useCollections } from '../lib/collections.js';
@@ -19,13 +19,38 @@ export function Layout({ children }: { children: ReactNode }) {
   const { collections } = useCollections();
   const { globals } = useGlobals();
   const navigate = useNavigate();
+  // Off-canvas sidebar below the ~880px breakpoint (see styles.css) — a
+  // fixed 220px column left no usable width for content on a narrow window.
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const content = collections.filter((c) => !c.taxonomyConfig.enabled);
   const taxonomies = collections.filter((c) => c.taxonomyConfig.enabled);
 
   return (
     <div className="layout">
-      <aside className="sidebar">
+      <button
+        type="button"
+        className="sidebar-toggle"
+        aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'}
+        onClick={() => setSidebarOpen((v) => !v)}
+      >
+        <svg
+          width="18"
+          height="18"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+        >
+          <path strokeLinecap="round" d="M3 6h18M3 12h18M3 18h18" />
+        </svg>
+      </button>
+      <div
+        className={`sidebar-backdrop${sidebarOpen ? ' open' : ''}`}
+        onClick={() => setSidebarOpen(false)}
+      />
+
+      <aside className={`sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="sidebar-header">
           <div className="brand">
             <span className="brand-mark">F</span>
@@ -34,7 +59,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <nav className="sidebar-nav">
+        <nav className="sidebar-nav" onClick={() => setSidebarOpen(false)}>
           <input
             type="search"
             placeholder="Search…"
@@ -42,7 +67,9 @@ export function Layout({ children }: { children: ReactNode }) {
             onKeyDown={(e) => {
               if (e.key !== 'Enter') return;
               const q = (e.target as HTMLInputElement).value.trim();
-              if (q) navigate(`/search?q=${encodeURIComponent(q)}`);
+              if (!q) return;
+              setSidebarOpen(false);
+              navigate(`/search?q=${encodeURIComponent(q)}`);
             }}
           />
 
