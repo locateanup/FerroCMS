@@ -386,7 +386,16 @@ export function EntryEditorPage() {
           />
         </div>
       ) : (
-        <div className="editor-layout">
+        <div
+          className="editor-layout"
+          // Keyed by entry so switching between entries (including new ->
+          // the just-created one) forces every field — critically
+          // BlockEditor's live Tiptap instance — to fully remount from the
+          // freshly loaded data, rather than reconciling one Tiptap
+          // document into another. Internal edits within the *same* entry
+          // never change this key, so typing never triggers a remount.
+          key={isNew ? 'new' : id}
+        >
           <div className="card" dir={isRtlLocale(locale) ? 'rtl' : 'ltr'}>
             {collection ? (
               collection.fields.map((field, i) => {

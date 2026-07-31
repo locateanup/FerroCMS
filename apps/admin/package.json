@@ -13,6 +13,14 @@
   },
   "dependencies": {
     "@ferrocms/core": "workspace:*",
+    "@tiptap/core": "^3.29.2",
+    "@tiptap/extension-bubble-menu": "^3.29.2",
+    "@tiptap/extension-link": "^3.29.2",
+    "@tiptap/extension-placeholder": "^3.29.2",
+    "@tiptap/pm": "^3.29.2",
+    "@tiptap/react": "^3.29.2",
+    "@tiptap/starter-kit": "^3.29.2",
+    "@tiptap/suggestion": "^3.29.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^7.18.1"
