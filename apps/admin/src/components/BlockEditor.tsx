@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { renderRichTextHtml, type RichTextBlock, type RichTextValue } from '@ferrocms/core';
 import { api } from '../lib/api.js';
 import { reorder, useDragReorder } from '../lib/dragReorder.js';
@@ -45,6 +45,82 @@ function asBlocks(value: unknown): RichTextValue {
   return Array.isArray(value) ? (value as RichTextValue) : [];
 }
 
+// Wraps the current selection of a textarea/input in markdown syntax (or
+// inserts a placeholder if nothing's selected), and restores focus + a
+// sensible selection afterward. Works directly on the DOM element rather
+// than through the controlled `value` prop, since the caret position isn't
+// otherwise recoverable across a React re-render.
+function wrapSelection(
+  el: HTMLTextAreaElement | HTMLInputElement,
+  before: string,
+  after: string,
+  onChange: (next: string) => void,
+  placeholder = 'text',
+) {
+  const start = el.selectionStart ?? el.value.length;
+  const end = el.selectionEnd ?? el.value.length;
+  const selected = el.value.slice(start, end) || placeholder;
+  const next = el.value.slice(0, start) + before + selected + after + el.value.slice(end);
+  onChange(next);
+  requestAnimationFrame(() => {
+    el.focus();
+    el.setSelectionRange(start + before.length, start + before.length + selected.length);
+  });
+}
+
+function TextToolbar({
+  getEl,
+  onChange,
+}: {
+  getEl: () => HTMLTextAreaElement | HTMLInputElement | null;
+  onChange: (next: string) => void;
+}) {
+  function run(before: string, after: string, placeholder?: string) {
+    const el = getEl();
+    if (el) wrapSelection(el, before, after, onChange, placeholder);
+  }
+  return (
+    <div className="row" style={{ gap: 2, marginBottom: 4 }}>
+      <button
+        type="button"
+        className="btn"
+        title="Bold"
+        style={{ padding: '1px 8px', fontSize: 12, fontWeight: 700 }}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => run('**', '**', 'bold text')}
+      >
+        B
+      </button>
+      <button
+        type="button"
+        className="btn"
+        title="Italic"
+        style={{ padding: '1px 8px', fontSize: 12, fontStyle: 'italic' }}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => run('*', '*', 'italic text')}
+      >
+        I
+      </button>
+      <button
+        type="button"
+        className="btn"
+        title="Link"
+        style={{ padding: '1px 8px', fontSize: 12 }}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={() => {
+          const el = getEl();
+          if (!el) return;
+          const url = prompt('Link URL (e.g. /go/partner or https://…)');
+          if (!url) return;
+          wrapSelection(el, '[', `](${url})`, onChange, 'link text');
+        }}
+      >
+        Link
+      </button>
+    </div>
+  );
+}
+
 /**
  * Block-based rich text editor. Content is a structured JSON array — never
  * raw HTML — so it's rendered safely on the front-end via
@@ -56,6 +132,18 @@ export function BlockEditor({ value, onChange }: Props) {
   const { dragIndex, handleProps, dropZoneProps } = useDragReorder((from, to) =>
     onChange(reorder(blocks, from, to)),
   );
+
+  // Index of a block that should receive focus once it's in the DOM — set
+  // right after inserting a new block via Enter, cleared once focused.
+  const [focusIndex, setFocusIndex] = useState<number | null>(null);
+  const controlRefs = useRef<Record<number, HTMLTextAreaElement | HTMLInputElement | null>>({});
+
+  useEffect(() => {
+    if (focusIndex === null) return;
+    const el = controlRefs.current[focusIndex];
+    el?.focus();
+    setFocusIndex(null);
+  }, [focusIndex, blocks.length]);
 
   function update(i: number, next: RichTextBlock) {
     const copy = blocks.slice();
@@ -77,6 +165,16 @@ export function BlockEditor({ value, onChange }: Props) {
 
   function add(type: RichTextBlock['type']) {
     onChange([...blocks, newBlock(type)]);
+  }
+
+  // Pressing Enter (not Shift+Enter) in a paragraph or heading inserts a new
+  // paragraph right after it and focuses that — the "just keep typing"
+  // behavior a plain textarea/block-picker doesn't otherwise have.
+  function insertParagraphAfter(i: number) {
+    const copy = blocks.slice();
+    copy.splice(i + 1, 0, newBlock('paragraph'));
+    onChange(copy);
+    setFocusIndex(i + 1);
   }
 
   return (
@@ -128,7 +226,8 @@ export function BlockEditor({ value, onChange }: Props) {
         />
       ) : blocks.length === 0 ? (
         <div style={{ padding: '16px', fontSize: 12 }} className="muted">
-          No blocks yet — add one above. Text supports **bold**, *italic*, `code`, and [links](url).
+          No blocks yet — add one above. Text supports **bold**, *italic*, `code`, and [links](url)
+          — or use the B / I / Link buttons once a text block exists.
         </div>
       ) : (
         <div style={{ padding: 10, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -187,7 +286,14 @@ export function BlockEditor({ value, onChange }: Props) {
                   </button>
                 </div>
               </div>
-              <BlockFields block={block} onChange={(next) => update(i, next)} />
+              <BlockFields
+                block={block}
+                onChange={(next) => update(i, next)}
+                onEnterNext={() => insertParagraphAfter(i)}
+                registerRef={(el) => {
+                  controlRefs.current[i] = el;
+                }}
+              />
             </div>
           ))}
         </div>
@@ -199,20 +305,57 @@ export function BlockEditor({ value, onChange }: Props) {
 function BlockFields({
   block,
   onChange,
+  onEnterNext,
+  registerRef,
 }: {
   block: RichTextBlock;
   onChange: (block: RichTextBlock) => void;
+  /** Enter (without Shift) in a paragraph/heading calls this instead of
+   * inserting a newline/doing nothing. */
+  onEnterNext: () => void;
+  /** Attaches the block's primary text control so BlockEditor can focus it
+   * (used right after inserting a new block via Enter). */
+  registerRef: (el: HTMLTextAreaElement | HTMLInputElement | null) => void;
 }) {
+  const textRef = useRef<HTMLTextAreaElement | null>(null);
+
+  function handleEnter(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      onEnterNext();
+    }
+  }
+
   switch (block.type) {
     case 'paragraph':
+      return (
+        <div>
+          <TextToolbar getEl={() => textRef.current} onChange={(text) => onChange({ ...block, text })} />
+          <textarea
+            ref={(el) => {
+              textRef.current = el;
+              registerRef(el);
+            }}
+            rows={3}
+            value={block.text}
+            placeholder="Text… Enter starts a new paragraph, Shift+Enter for a line break."
+            onChange={(e) => onChange({ ...block, text: e.target.value })}
+            onKeyDown={handleEnter}
+          />
+        </div>
+      );
     case 'quote':
       return (
-        <textarea
-          rows={3}
-          value={block.text}
-          placeholder="Text… supports **bold**, *italic*, `code`, [link](url)"
-          onChange={(e) => onChange({ ...block, text: e.target.value })}
-        />
+        <div>
+          <TextToolbar getEl={() => textRef.current} onChange={(text) => onChange({ ...block, text })} />
+          <textarea
+            ref={textRef}
+            rows={3}
+            value={block.text}
+            placeholder="Text… supports **bold**, *italic*, `code`, [link](url)"
+            onChange={(e) => onChange({ ...block, text: e.target.value })}
+          />
+        </div>
       );
     case 'heading':
       return (
@@ -227,10 +370,12 @@ function BlockFields({
             <option value={4}>H4</option>
           </select>
           <input
+            ref={registerRef}
             style={{ flex: 1 }}
             value={block.text}
-            placeholder="Heading text"
+            placeholder="Heading text — Enter adds a paragraph below"
             onChange={(e) => onChange({ ...block, text: e.target.value })}
+            onKeyDown={handleEnter}
           />
         </div>
       );
@@ -315,7 +460,9 @@ function BlockFields({
               onChange={(e) => onChange({ ...block, title: e.target.value || undefined })}
             />
           </div>
+          <TextToolbar getEl={() => textRef.current} onChange={(text) => onChange({ ...block, text })} />
           <textarea
+            ref={textRef}
             rows={3}
             value={block.text}
             placeholder="Callout text… supports **bold**, *italic*, `code`, [link](url)"

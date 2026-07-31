@@ -65,7 +65,21 @@ export function CollectionListPage() {
 
   async function bulkDelete() {
     if (!slug || selected.size === 0) return;
-    if (!confirm(`Delete ${selected.size} entries? This cannot be undone.`)) return;
+    const count = selected.size;
+    // A single confirm() is easy to click through on reflex, especially
+    // sitting right next to "Apply" in the same toolbar — this is how all
+    // of moneyinsider's posts got deleted in one go. For more than one
+    // entry, require typing the exact count so a mis-click can't cascade
+    // into a mass deletion. A lone entry keeps the lighter confirm(), same
+    // as the single-entry editor's own Delete button.
+    if (count === 1) {
+      if (!confirm('Delete this entry? This cannot be undone.')) return;
+    } else {
+      const typed = prompt(
+        `This permanently deletes ${count} entries and cannot be undone.\nType ${count} to confirm.`,
+      );
+      if (typed?.trim() !== String(count)) return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -162,9 +176,15 @@ export function CollectionListPage() {
           <button className="btn btn-primary" disabled={busy} onClick={applyBulkStatus}>
             Apply
           </button>
-          <button className="btn btn-danger" disabled={busy} onClick={bulkDelete}>
-            Delete selected
-          </button>
+          {/* Deliberately far from Apply, with a visible divider — the two
+              buttons sitting right next to each other is what led to a
+              mass deletion (see bulkDelete's comment). */}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{ width: 1, alignSelf: 'stretch', background: 'var(--border)' }} />
+            <button className="btn btn-danger" disabled={busy} onClick={bulkDelete}>
+              Delete selected…
+            </button>
+          </div>
         </div>
       )}
 

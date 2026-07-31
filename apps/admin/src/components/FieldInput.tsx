@@ -17,13 +17,24 @@ interface Props {
    * one. Used to evaluate `admin.condition` against sibling values.
    */
   formData?: Record<string, unknown>;
+  /**
+   * Validation messages keyed by dot-path from the entry root (matching the
+   * server's zod issue paths, e.g. "pillar" or "faq.0.question") — see
+   * EntryEditorPage's save(). Passed through unchanged at every nesting
+   * level; each FieldInput just looks up its own `path`.
+   */
+  errors?: Record<string, string>;
+  /** This field's own dot-path from the entry root. Defaults to field.name
+   * for a top-level field; group/repeater cases below pass the nested path
+   * down explicitly. */
+  path?: string;
 }
 
 function label(field: Field): string {
   return field.label ?? field.name.charAt(0).toUpperCase() + field.name.slice(1);
 }
 
-export function FieldInput({ field, value, onChange, formData = {} }: Props) {
+export function FieldInput({ field, value, onChange, formData = {}, errors, path }: Props) {
   // Called unconditionally regardless of field.type (Rules of Hooks) — cheap
   // when unused, only wired up in the 'repeater' case below.
   const repeaterRows = field.type === 'repeater' && Array.isArray(value) ? value : [];
@@ -34,16 +45,24 @@ export function FieldInput({ field, value, onChange, formData = {} }: Props) {
   if (field.admin?.hidden) return null;
   if (field.admin?.condition && !evaluateCondition(field.admin.condition, formData)) return null;
 
+  const fieldPath = path ?? field.name;
+  const error = errors?.[fieldPath];
   const common = { id: field.name, placeholder: field.admin?.placeholder };
 
   return (
-    <div className="field">
+    <div className={`field${error ? ' field-invalid' : ''}`}>
       <label htmlFor={field.name}>
         {label(field)}
         {field.required ? ' *' : ''}
       </label>
       {renderControl()}
-      {field.description ? <div className="help">{field.description}</div> : null}
+      {error ? (
+        <div className="field-error" role="alert">
+          {error}
+        </div>
+      ) : field.description ? (
+        <div className="help">{field.description}</div>
+      ) : null}
     </div>
   );
 
@@ -140,6 +159,8 @@ export function FieldInput({ field, value, onChange, formData = {} }: Props) {
                 field={sub}
                 value={groupValue[sub.name]}
                 formData={groupValue}
+                errors={errors}
+                path={`${fieldPath}.${sub.name}`}
                 onChange={(v) => onChange({ ...groupValue, [sub.name]: v })}
               />
             ))}
@@ -200,6 +221,8 @@ export function FieldInput({ field, value, onChange, formData = {} }: Props) {
                     field={sub}
                     value={row[sub.name]}
                     formData={row}
+                    errors={errors}
+                    path={`${fieldPath}.${i}.${sub.name}`}
                     onChange={(v) =>
                       onChange(rows.map((r, j) => (j === i ? { ...r, [sub.name]: v } : r)))
                     }

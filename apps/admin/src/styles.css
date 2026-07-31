@@ -394,11 +394,32 @@ label {
 
 .field {
   margin-bottom: 16px;
+  border-left: 3px solid transparent;
+  padding-left: 10px;
+  margin-left: -13px;
 }
 .field .help {
   font-size: 12px;
   color: var(--text-muted);
   margin-top: 4px;
+}
+/* Marks the field a save attempt just failed validation on — see
+   FieldInput's `error` prop. The left border + inline message replace the
+   old behavior of one generic error string at the very bottom of the form,
+   below every field including the body editor. */
+.field-invalid {
+  border-left-color: var(--danger);
+}
+.field-invalid input,
+.field-invalid select,
+.field-invalid textarea {
+  border-color: var(--danger);
+}
+.field-error {
+  font-size: 12px;
+  color: var(--danger);
+  margin-top: 4px;
+  font-weight: 500;
 }
 
 .editor-layout {

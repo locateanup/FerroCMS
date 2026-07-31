@@ -57,6 +57,11 @@ export function EntryEditorPage() {
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Per-field messages keyed by dot-path (e.g. "pillar", "faq.0.question"),
+  // parsed from the same validation response `error` summarizes — see
+  // save() below. Rendered next to the actual field via FieldInput's
+  // `errors` prop, instead of only as one generic string at the bottom.
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [locale, setLocale] = useState<string>('');
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -142,6 +147,7 @@ export function EntryEditorPage() {
   async function save(nextStatus: EntryStatus, nextScheduledAt?: string | null) {
     setSaving(true);
     setError(null);
+    setFieldErrors({});
     try {
       if (isNew) {
         const created = await api.createEntry(slug!, data, nextStatus, nextScheduledAt);
@@ -155,7 +161,8 @@ export function EntryEditorPage() {
     } catch (err) {
       if (err instanceof ApiError && err.details) {
         const details = err.details as { path: string; message: string }[];
-        setError(details.map((d) => `${d.path}: ${d.message}`).join(', '));
+        setFieldErrors(Object.fromEntries(details.map((d) => [d.path, d.message])));
+        setError('Fix the highlighted field(s) below and save again.');
       } else {
         setError(err instanceof ApiError ? err.message : 'Failed to save.');
       }
@@ -261,6 +268,12 @@ export function EntryEditorPage() {
           </button>
         )}
       </div>
+
+      {error && (
+        <div className="error-text" style={{ marginBottom: 14 }}>
+          {error}
+        </div>
+      )}
 
       {otherViewers.length > 0 && (
         <div
@@ -421,6 +434,7 @@ export function EntryEditorPage() {
                       value={fieldValue}
                       onChange={handleChange}
                       formData={data}
+                      errors={fieldErrors}
                     />
                   </div>
                 );
@@ -428,7 +442,6 @@ export function EntryEditorPage() {
             ) : (
               <p className="muted">Unknown collection.</p>
             )}
-            {error && <div className="error-text">{error}</div>}
           </div>
 
           <aside className="card" style={{ alignSelf: 'start' }}>
